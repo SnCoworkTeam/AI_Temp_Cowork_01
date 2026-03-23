@@ -1,0 +1,26 @@
+# 启动mcp-gateway服务的命令
+# 在服务器上执行
+
+cd /opt/enterprise-ai-platform
+
+# 1. 检查容器是否存在
+sudo docker ps -a | grep mcp-gateway
+
+# 2. 启动mcp-gateway服务
+sudo docker compose up -d mcp-gateway
+
+# 3. 查看启动日志
+sudo docker compose logs -f mcp-gateway
+
+# 4. 检查容器状态
+sudo docker compose ps mcp-gateway
+
+# 5. 测试健康检查
+curl http://localhost:8001/api/health
+
+# 如果启动失败，查看详细错误
+sudo docker compose logs --tail=100 mcp-gateway
+
+# 如果需要重新构建并启动
+sudo docker compose up -d --build mcp-gateway
+

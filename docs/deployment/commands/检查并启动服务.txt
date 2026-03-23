@@ -1,0 +1,86 @@
+# 检查当前状态并启动服务
+# 网络警告可以忽略
+
+cd /opt/enterprise-ai-platform
+
+# ============================================
+# 步骤1: 检查当前所有容器状态
+# ============================================
+sudo docker ps -a
+
+# 检查mcp-gateway是否已经启动
+sudo docker ps | grep mcp-gateway
+
+# ============================================
+# 步骤2: 如果mcp-gateway未启动，检查原因
+# ============================================
+# 查看mcp-gateway容器（如果存在）
+sudo docker ps -a | grep mcp-gateway
+
+# 如果mcp-gateway容器存在但未运行，查看日志
+sudo docker logs enterprise-ai-mcp-gateway 2>&1 | tail -50
+
+# ============================================
+# 步骤3: 重新启动postgres（使用docker start）
+# ============================================
+sudo docker start enterprise-ai-postgres
+
+# 等待postgres就绪
+sleep 15
+
+# 验证postgres运行
+sudo docker ps | grep postgres
+
+# ============================================
+# 步骤4: 启动redis（如果未运行）
+# ============================================
+# 检查redis是否运行
+sudo docker ps | grep enterprise-ai-redis
+
+# 如果redis未运行，启动它
+sudo docker compose up -d redis
+
+# 等待redis就绪
+sleep 5
+
+# ============================================
+# 步骤5: 启动mcp-gateway（如果未运行）
+# ============================================
+# 检查mcp-gateway是否已存在
+sudo docker ps -a | grep mcp-gateway
+
+# 如果mcp-gateway容器存在但未运行，直接启动
+sudo docker start enterprise-ai-mcp-gateway
+
+# 如果mcp-gateway容器不存在，使用docker compose创建
+sudo docker compose up -d mcp-gateway
+
+# 等待mcp-gateway启动
+sleep 15
+
+# ============================================
+# 步骤6: 检查所有服务状态
+# ============================================
+sudo docker ps
+
+# 使用docker compose查看（可能显示不完整，因为有些容器不是compose启动的）
+sudo docker compose ps
+
+# ============================================
+# 步骤7: 查看mcp-gateway日志
+# ============================================
+sudo docker logs --tail=50 enterprise-ai-mcp-gateway
+
+# 或者使用docker compose
+sudo docker compose logs --tail=50 mcp-gateway
+
+# ============================================
+# 步骤8: 测试服务
+# ============================================
+curl http://localhost:8001/api/health
+
+# ============================================
+# 一键检查和启动命令
+# ============================================
+sudo docker start enterprise-ai-postgres && sleep 15 && sudo docker compose up -d redis && sleep 5 && (sudo docker start enterprise-ai-mcp-gateway 2>/dev/null || sudo docker compose up -d mcp-gateway) && sleep 15 && sudo docker ps && echo "" && curl http://localhost:8001/api/health
+

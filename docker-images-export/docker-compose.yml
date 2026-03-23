@@ -1,0 +1,1367 @@
+services:
+  # PostgreSQL数据库服务
+  postgres:
+    image: postgres:15
+    container_name: enterprise-ai-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-ai_platform}
+      POSTGRES_USER: ${DB_USER:-ai_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-ai_password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init-scripts:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:${DB_PORT:-5432}:5432"  # 仅本地访问，不对外开放
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-ai_user} -d ${DB_NAME:-ai_platform}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=200"
+      - "-c"
+      - "shared_buffers=256MB"
+      - "-c"
+      - "effective_cache_size=1GB"
+      - "-c"
+      - "maintenance_work_mem=64MB"
+      - "-c"
+      - "checkpoint_completion_target=0.9"
+      - "-c"
+      - "wal_buffers=16MB"
+      - "-c"
+      - "default_statistics_target=100"
+      - "-c"
+      - "random_page_cost=1.1"
+      - "-c"
+      - "effective_io_concurrency=200"
+      - "-c"
+      - "work_mem=4MB"
+      - "-c"
+      - "min_wal_size=1GB"
+      - "-c"
+      - "max_wal_size=4GB"
+
+  # Redis缓存服务
+  redis:
+    image: redis:7-alpine
+    container_name: enterprise-ai-redis
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"  # 仅本地访问，不对外开放
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+
+  # Redis Commander - Redis管理界面（可选，默认不启动以保持 19 服务）
+  redis-commander:
+    profiles:
+      - optional
+    image: rediscommander/redis-commander:latest
+    container_name: enterprise-ai-redis-commander
+    environment:
+      REDIS_HOSTS: local:redis:6379
+      HTTP_USER: ${REDIS_COMMANDER_USER:-admin}
+      HTTP_PASSWORD: ${REDIS_COMMANDER_PASSWORD:-admin}
+    ports:
+      - "127.0.0.1:${REDIS_COMMANDER_PORT:-8081}:8081"  # 仅本地访问，不对外开放
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+
+  # Registry Service - 服务注册与发现中心
+  registry-service:
+    build:
+      context: ./registry-service
+      dockerfile: Dockerfile.dev
+      args:
+        - PYTHON_VERSION=${PYTHON_VERSION:-3.11}
+    container_name: enterprise-ai-registry-service
+    ports:
+      - "${REGISTRY_SERVICE_PORT:-8000}:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DEBUG=${DEBUG:-true}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - HEALTH_CHECK_INTERVAL=10
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONPATH=/app
+    env_file:
+      - .env
+    volumes:
+      # 源代码热重载
+      - ./registry-service/src:/app/src:cached
+      # 避免覆盖虚拟环境
+      - registry_service_venv:/app/venv
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+
+  # API Gateway - 统一API网关
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile.dev
+      args:
+        - PYTHON_VERSION=${PYTHON_VERSION:-3.11}
+    container_name: enterprise-ai-api-gateway
+    ports:
+      - "${API_GATEWAY_PORT:-8080}:8080"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8080
+      - DEBUG=${DEBUG:-true}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REGISTRY_SERVICE_URL=http://registry-service:8000
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - RATE_LIMIT_ENABLED=true
+      - RATE_LIMIT_PER_MINUTE=60
+      - CIRCUIT_BREAKER_ENABLED=true
+      - METRICS_ENABLED=true
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONPATH=/app
+    env_file:
+      - .env
+    volumes:
+      # 源代码热重载
+      - ./api-gateway/src:/app/src:cached
+      # services目录（api-gateway需要）
+      - ./services:/app/services:cached
+      # 避免覆盖虚拟环境
+      - api_gateway_venv:/app/venv
+    depends_on:
+      redis:
+        condition: service_healthy
+      registry-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+
+  # Config Center - 配置管理中心
+  config-center:
+    build:
+      context: ./config-center
+      dockerfile: Dockerfile.dev
+      args:
+        - PYTHON_VERSION=${PYTHON_VERSION:-3.11}
+    container_name: enterprise-ai-config-center
+    ports:
+      - "${CONFIG_CENTER_PORT:-8090}:8090"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8090
+      - DEBUG=${DEBUG:-true}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - REGISTRY_SERVICE_URL=http://registry-service:8000
+      - SERVICE_HOST=config-center
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONPATH=/app
+    env_file:
+      - .env
+    volumes:
+      # 源代码热重载
+      - ./config-center/src:/app/src:cached
+      # 避免覆盖虚拟环境
+      - config_center_venv:/app/venv
+    depends_on:
+      redis:
+        condition: service_healthy
+      registry-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+
+  # SAP MCP Server服务（目录 sap-odata-to-mcp-server 无 Dockerfile.dev 时默认不构建，加 --profile sap 可构建）
+  sap-mcp-server:
+    profiles:
+      - sap
+    build:
+      context: ./sap-odata-to-mcp-server
+      dockerfile: Dockerfile.dev
+      args:
+        - NODE_ENV=${NODE_ENV:-development}
+    container_name: enterprise-ai-sap-mcp-server
+    ports:
+      - "${SAP_MCP_SERVER_PORT:-3001}:3000"
+    environment:
+      # 配置中心URL（优先从配置中心读取SAP配置）
+      - CONFIG_CENTER_URL=http://config-center:8090
+      # SAP 连接配置（降级方案，如果配置中心不可用）
+      - SAP_BASE_URL=${SAP_BASE_URL:-}
+      - SAP_CLIENT=${SAP_CLIENT:-100}
+      - SAP_USERNAME=${SAP_USERNAME:-}
+      - SAP_PASSWORD=${SAP_PASSWORD:-}
+      - SAP_LANGUAGE=${SAP_LANGUAGE:-EN}
+      # 服务器配置
+      - PORT=3000
+      - NODE_ENV=${NODE_ENV:-development}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      # OData 服务发现配置
+      - ODATA_ALLOW_ALL=${ODATA_ALLOW_ALL:-true}
+      - ODATA_MAX_SERVICES=${ODATA_MAX_SERVICES:-200}
+    volumes:
+      # 源代码热重载
+      - ./sap-odata-to-mcp-server/src:/app/src:cached
+      - ./sap-odata-to-mcp-server/package.json:/app/package.json:cached
+      - ./sap-odata-to-mcp-server/tsconfig.json:/app/tsconfig.json:cached
+      - ./sap-odata-to-mcp-server/logs:/app/logs
+      # 避免覆盖 node_modules
+      - sap_mcp_server_node_modules:/app/node_modules
+    depends_on:
+      config-center:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - enterprise-ai-network
+
+  # MCP Gateway服务
+  mcp-gateway:
+    build:
+      context: .
+      dockerfile: mcp-gateway/Dockerfile.dev
+      args:
+        - PYTHON_VERSION=${PYTHON_VERSION:-3.11}
+    container_name: enterprise-ai-mcp-gateway
+    ports:
+      - "${MCP_GATEWAY_PORT:-8001}:8001"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8001
+      - DEBUG=${DEBUG:-true}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-ai_user}
+      - DB_PASSWORD=${DB_PASSWORD:-ai_password}
+      - DB_NAME=${DB_NAME:-ai_platform}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - WORKFLOW_ENGINE_URL=http://workflow-engine:8002
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      # CORS配置 - 添加服务器IP
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:3001,http://43.143.139.197:3000
+      # MCP服务器配置（JSON格式）
+      - MCP_SERVERS=${MCP_SERVERS:-[{"name":"sap-mcp-server","url":"http://sap-mcp-server:3000/mcp","transport":"http","timeout":60,"auto_connect":true}]}
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONPATH=/app:/:/database:/shared_libs
+    env_file:
+      - .env
+    volumes:
+      # 源代码热重载
+      - ./mcp-gateway/src:/app/src:cached
+      - ./database:/database:cached
+      # 共享库（mcp-gateway 需要）
+      - ./shared_libs:/shared_libs:cached
+      # 避免覆盖node_modules和依赖
+      - mcp_gateway_venv:/app/venv
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/api/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+    command: >
+      sh -c "export PYTHONPATH=/app:/:/database:/shared_libs &&
+      uvicorn src.main:app
+      --host 0.0.0.0
+      --port 8001
+      --reload
+      --reload-dir /app/src
+      --log-level $(echo ${LOG_LEVEL:-info} | tr '[:upper:]' '[:lower:]')"
+
+  # Workflow Engine服务
+  workflow-engine:
+    build:
+      context: .
+      dockerfile: workflow-engine/Dockerfile.dev
+      args:
+        - PYTHON_VERSION=${PYTHON_VERSION:-3.11}
+    container_name: enterprise-ai-workflow-engine
+    ports:
+      - "${WORKFLOW_ENGINE_PORT:-8002}:8002"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8002
+      - DEBUG=${DEBUG:-true}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-ai_user}
+      - DB_PASSWORD=${DB_PASSWORD:-ai_password}
+      - DB_NAME=${DB_NAME:-ai_platform}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MCP_GATEWAY_URL=http://mcp-gateway:8001
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - LLM_BASE_URL=${LLM_BASE_URL:-}
+      - LLM_MODEL=${LLM_MODEL:-deepseek-chat}
+      - LANGCHAIN_API_KEY=${LANGCHAIN_API_KEY:-}
+      - LANGCHAIN_TRACING_V2=${LANGCHAIN_TRACING_V2:-false}
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONPATH=/app:/:/database:/shared_libs
+    env_file:
+      - .env
+    volumes:
+      # 源代码热重载
+      - ./workflow-engine/src:/app/src:cached
+      - ./workflow-engine/tests:/app/tests:cached
+      - ./database:/database:cached
+      # 共享库（workflow-engine 需要）
+      - ./shared_libs:/shared_libs:cached
+      # 避免覆盖虚拟环境
+      - workflow_engine_venv:/app/venv
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      # mcp-gateway 依赖已移除，因为 mcp-gateway 当前不健康
+      # mcp-gateway:
+      #   condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+    command: >
+      sh -c "cd /app && uvicorn src.main:app
+      --host 0.0.0.0
+      --port 8002
+      --reload
+      --reload-dir /app/src
+      --log-level $(echo ${LOG_LEVEL:-info} | tr '[:upper:]' '[:lower:]')"
+
+  # Web UI服务
+  web-ui:
+    build:
+      context: ./web-ui
+      dockerfile: Dockerfile.dev
+      args:
+        - NODE_VERSION=${NODE_VERSION:-20}
+    container_name: enterprise-ai-web-ui
+    ports:
+      - "${WEB_UI_PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=development
+      # 客户端环境变量（浏览器使用）
+      - NEXT_PUBLIC_API_GATEWAY_URL=http://43.143.139.197:8080
+      - NEXT_PUBLIC_MCP_GATEWAY_URL=http://43.143.139.197:8001
+      - NEXT_PUBLIC_WORKFLOW_ENGINE_URL=http://43.143.139.197:8002
+      - NEXT_PUBLIC_AUTH_SERVICE_URL=http://43.143.139.197:8080/api/auth
+      - NEXT_PUBLIC_KNOWLEDGE_BASE_URL=http://43.143.139.197:8004
+      - NEXT_PUBLIC_METADATA_SERVICE_URL=http://43.143.139.197:8005
+      - METADATA_SERVICE_URL=http://metadata-service:8005
+      - NEXT_PUBLIC_CONFIG_CENTER_URL=http://43.143.139.197:8080/api/config
+      - NEXT_PUBLIC_AGENT_SERVICE_URL=http://43.143.139.197:8010
+      - NEXT_PUBLIC_AGENT_ORCHESTRATOR_URL=http://43.143.139.197:8011
+      # 服务器端环境变量（Next.js API 路由使用，Docker 网络内访问）
+      - API_GATEWAY_URL=http://api-gateway:8080
+      - WORKFLOW_ENGINE_URL=http://workflow-engine:8002
+      - AUTH_SERVICE_URL=http://auth-service:8003
+      - MCP_GATEWAY_URL=http://mcp-gateway:8001
+      - AGENT_SERVICE_URL=http://agent-service:8010
+      - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
+    env_file:
+      - .env
+    volumes:
+      # 源代码热重载
+      - ./web-ui/src:/app/src:cached
+      - ./web-ui/public:/app/public:cached
+      - ./web-ui/package.json:/app/package.json:cached
+      - ./web-ui/next.config.js:/app/next.config.js:cached
+      - ./web-ui/tsconfig.json:/app/tsconfig.json:cached
+      - ./web-ui/tailwind.config.js:/app/tailwind.config.js:cached
+      # 避免覆盖node_modules和.next
+      - web_ui_node_modules:/app/node_modules
+      - web_ui_next:/app/.next
+    depends_on:
+      - mcp-gateway
+      - workflow-engine
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+    command: npm run dev
+
+  # Auth Service服务
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile.dev
+      args:
+        - PYTHON_VERSION=${PYTHON_VERSION:-3.11}
+    container_name: enterprise-ai-auth-service
+    ports:
+      - "${AUTH_SERVICE_PORT:-8003}:8003"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8003
+      - DEBUG=${DEBUG:-true}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-ai_user}
+      - DB_PASSWORD=${DB_PASSWORD:-ai_password}
+      - DB_NAME=${DB_NAME:-ai_platform}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - SSO_CLIENT_ID=${SSO_CLIENT_ID:-}
+      - SSO_CLIENT_SECRET=${SSO_CLIENT_SECRET:-}
+      - SSO_AUTHORIZATION_URL=${SSO_AUTHORIZATION_URL:-}
+      - SSO_TOKEN_URL=${SSO_TOKEN_URL:-}
+      - SSO_USERINFO_URL=${SSO_USERINFO_URL:-}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-change-in-production}
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+    env_file:
+      - .env
+    volumes:
+      # 源代码热重载
+      - ./auth-service/src:/app/src:cached
+      - ./database:/database:cached
+      # 避免覆盖虚拟环境
+      - auth_service_venv:/app/venv
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+    command: >
+      sh -c "uvicorn src.main:app
+      --host 0.0.0.0
+      --port 8003
+      --reload
+      --reload-dir /app/src
+      --log-level $(echo ${LOG_LEVEL:-info} | tr '[:upper:]' '[:lower:]')"
+
+  # Knowledge Base服务
+  knowledge-base:
+    build:
+      context: .
+      dockerfile: knowledge-base/Dockerfile.dev
+      args:
+        - PYTHON_VERSION=${PYTHON_VERSION:-3.11}
+    container_name: enterprise-ai-knowledge-base
+    ports:
+      - "${KNOWLEDGE_BASE_PORT:-8004}:8004"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8004
+      - DEBUG=${DEBUG:-true}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-ai_user}
+      - DB_PASSWORD=${DB_PASSWORD:-ai_password}
+      - DB_NAME=${DB_NAME:-ai_platform}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - VECTOR_STORE_TYPE=${VECTOR_STORE_TYPE:-chroma}
+      - CHROMA_PERSIST_DIR=/app/chroma_db
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-sentence-transformers/all-MiniLM-L6-v2}
+      - EMBEDDING_DEVICE=${EMBEDDING_DEVICE:-cpu}
+      - DOCUMENT_STORAGE_DIR=/app/documents
+      - MAX_FILE_SIZE=${MAX_FILE_SIZE:-104857600}
+      - CHUNK_SIZE=${CHUNK_SIZE:-1000}
+      - CHUNK_OVERLAP=${CHUNK_OVERLAP:-200}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirror.com}
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONPATH=/app:/:/database:/shared_libs
+    env_file:
+      - .env
+    volumes:
+      # 源代码热重载
+      - ./knowledge-base/src:/app/src:cached
+      - ./database:/database:cached
+      # 共享库（knowledge-base 需要）
+      - ./shared_libs:/shared_libs:cached
+      # 数据持久化
+      - knowledge_base_documents:/app/documents
+      - knowledge_base_chroma:/app/chroma_db
+      # 避免覆盖虚拟环境
+      - knowledge_base_venv:/app/venv
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/api/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+    command: >
+      sh -c "uvicorn src.main:app
+      --host 0.0.0.0
+      --port 8004
+      --reload
+      --reload-dir /app/src
+      --log-level $(echo ${LOG_LEVEL:-info} | tr '[:upper:]' '[:lower:]')"
+
+  # Metadata Service服务
+  metadata-service:
+    build:
+      context: .
+      dockerfile: metadata-service/Dockerfile.dev
+      args:
+        - PYTHON_VERSION=${PYTHON_VERSION:-3.11}
+    container_name: enterprise-ai-metadata-service
+    ports:
+      - "${METADATA_SERVICE_PORT:-8005}:8005"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8005
+      - DEBUG=${DEBUG:-true}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      # 使用.env文件中的配置，如果没有则使用ai_user（与PostgreSQL实际配置一致）
+      - DB_USER=${DB_USER:-ai_user}
+      - DB_PASSWORD=${DB_PASSWORD:-ai_password}
+      - DB_NAME=${DB_NAME:-ai_platform}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      # LLM配置（用于关系发现增强）
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://api.deepseek.com}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - LLM_RELATIONSHIP_DISCOVERY_ENABLED=${LLM_RELATIONSHIP_DISCOVERY_ENABLED:-true}
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONPATH=/app:/:/database:/shared_libs
+    env_file:
+      - .env
+    volumes:
+      # 源代码热重载
+      - ./metadata-service/src:/app/src:cached
+      - ./database:/database:cached
+      # 共享库（metadata-service 需要）
+      - ./shared_libs:/shared_libs:cached
+      # 避免覆盖虚拟环境
+      - metadata_service_venv:/app/venv
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8005/api/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+    command: >
+      sh -c "uvicorn src.main:app
+      --host 0.0.0.0
+      --port 8005
+      --reload
+      --reload-dir /app/src
+      --log-level $(echo ${LOG_LEVEL:-info} | tr '[:upper:]' '[:lower:]')"
+
+  # Chat Service - AI助手对话管理服务
+  chat-service:
+    build:
+      context: .
+      dockerfile: chat-service/Dockerfile.dev
+      args:
+        - PYTHON_VERSION=${PYTHON_VERSION:-3.11}
+    container_name: enterprise-ai-chat-service
+    ports:
+      - "${CHAT_SERVICE_PORT:-8006}:8006"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8006
+      - DEBUG=${DEBUG:-true}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-ai_user}
+      - DB_PASSWORD=${DB_PASSWORD:-ai_password}
+      - DB_NAME=${DB_NAME:-ai_platform}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - AUTH_SERVICE_URL=http://auth-service:8003
+      - KNOWLEDGE_BASE_URL=http://knowledge-base:8004
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONPATH=/app:/:/database:/shared_libs
+    env_file:
+      - .env
+    volumes:
+      # 源代码热重载
+      - ./chat-service/src:/app/src:cached
+      - ./database:/database:cached
+      # 共享库（chat-service 需要）
+      - ./shared_libs:/shared_libs:cached
+      # 避免覆盖虚拟环境
+      - chat_service_venv:/app/venv
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8006/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+    command: >
+      sh -c "export PYTHONPATH=/app:/:/database &&
+      uvicorn src.main:app
+      --host 0.0.0.0
+      --port 8006
+      --reload
+      --reload-dir /app/src
+      --log-level $(echo ${LOG_LEVEL:-info} | tr '[:upper:]' '[:lower:]')"
+
+  # JoyAgent Adapter - JoyAgent适配器服务
+  # DAG Orchestrator服务
+  dag-orchestrator:
+    build:
+      context: ./dag-orchestrator
+      dockerfile: Dockerfile.dev
+      args:
+        - PYTHON_VERSION=${PYTHON_VERSION:-3.11}
+    container_name: enterprise-ai-dag-orchestrator
+    ports:
+      - "${DAG_ORCHESTRATOR_PORT:-8009}:8009"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8009
+      - DEBUG=${DEBUG:-true}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - MCP_GATEWAY_URL=http://mcp-gateway:8001
+      - WORKFLOW_ENGINE_URL=http://workflow-engine:8002
+      - KNOWLEDGE_BASE_URL=http://knowledge-base:8004
+      - CHAT_SERVICE_URL=http://chat-service:8006
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - LLM_BASE_URL=${LLM_BASE_URL:-}
+      - LLM_MODEL=${LLM_MODEL:-deepseek-chat}
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONPATH=/app
+    env_file:
+      - .env
+    volumes:
+      # 源代码热重载
+      - ./dag-orchestrator/src:/app/src:cached
+      # 共享库（配置客户端需要）
+      - ./shared_libs:/shared_libs:cached
+      # 避免覆盖虚拟环境
+      - dag_orchestrator_venv:/app/venv
+
+  # Agent Service - 智能体核心服务
+  agent-service:
+    build:
+      context: ./agent-service
+      dockerfile: Dockerfile.dev
+      args:
+        - PYTHON_VERSION=${PYTHON_VERSION:-3.11}
+    container_name: enterprise-ai-agent-service
+    ports:
+      - "${AGENT_SERVICE_PORT:-8010}:8010"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8010
+      - DEBUG=${DEBUG:-true}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - MCP_GATEWAY_URL=http://mcp-gateway:8001
+      - WORKFLOW_ENGINE_URL=http://workflow-engine:8002
+      - DAG_ORCHESTRATOR_URL=http://dag-orchestrator:8009
+      - KNOWLEDGE_BASE_URL=http://knowledge-base:8004
+      - CHAT_SERVICE_URL=http://chat-service:8006
+      - MEMORY_SERVICE_URL=http://memory-service:8013
+      - METADATA_SERVICE_URL=http://metadata-service:8005
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://api.deepseek.com}
+      - LLM_MODEL=${LLM_MODEL:-deepseek-chat}
+      - LLM_TEMPERATURE=${LLM_TEMPERATURE:-0.7}
+      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS:-4096}
+      # 提示词引擎配置
+      - PROMPT_ENGINE_ENABLED=true
+      - PROMPT_CONFIG_PATH=/app/config/prompt_templates.yaml
+      - PROMPT_CACHE_ENABLED=true
+      - PROMPT_CACHE_SIZE=500
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONPATH=/app:/app/src:/app/shared_libs:/app/database/src
+    env_file:
+      - .env
+    volumes:
+      # 源代码热重载
+      - ./agent-service/src:/app/src:cached
+      - ./agent-service/config:/app/config:cached
+      - ./agent-service/scripts:/app/scripts:cached
+      - ./database:/app/database:cached
+      # SSH执行器工具目录（SSH智能体需要）
+      - ./tools:/app/tools:cached
+      - ./tools:/opt/enterprise-ai-platform/tools:cached
+      # 共享库（配置客户端需要）
+      - ./shared_libs:/shared_libs:cached
+      # SSH密钥（SSH智能体需要）
+      - ./enterprise_ai_platform.pem:/opt/enterprise-ai-platform/enterprise_ai_platform.pem:ro
+      # 避免覆盖虚拟环境
+      - agent_service_venv:/app/venv
+    depends_on:
+      - postgres
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8010/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+    command: >
+      sh -c "uvicorn src.main:app
+      --host 0.0.0.0
+      --port 8010
+      --reload
+      --reload-dir /app/src
+      --log-level $(echo ${LOG_LEVEL:-info} | tr '[:upper:]' '[:lower:]')"
+
+  # Agent Orchestrator - 智能体编排服务
+  agent-orchestrator:
+    build:
+      context: ./agent-orchestrator
+      dockerfile: Dockerfile.dev
+      args:
+        - PYTHON_VERSION=${PYTHON_VERSION:-3.11}
+    container_name: enterprise-ai-agent-orchestrator
+    ports:
+      - "${AGENT_ORCHESTRATOR_PORT:-8011}:8011"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8011
+      - DEBUG=${DEBUG:-true}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - AGENT_SERVICE_URL=http://agent-service:8010
+      - REGISTRY_SERVICE_URL=http://registry-service:8000
+      - CONFIG_CENTER_URL=http://config-center:8090
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://api.deepseek.com}
+      - LLM_MODEL=${LLM_MODEL:-deepseek-chat}
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONPATH=/app
+    env_file:
+      - .env
+    volumes:
+      # 源代码热重载
+      - ./agent-orchestrator/src:/app/src:cached
+      # 避免覆盖虚拟环境
+      - agent_orchestrator_venv:/app/venv
+    depends_on:
+      - agent-service
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8011/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+    command: >
+      sh -c "uvicorn src.main:app
+      --host 0.0.0.0
+      --port 8011
+      --reload
+      --reload-dir /app/src
+      --log-level $(echo ${LOG_LEVEL:-info} | tr '[:upper:]' '[:lower:]')"
+
+  # Agent Registry - 智能体注册中心
+  agent-registry:
+    build:
+      context: ./agent-registry
+      dockerfile: Dockerfile.dev
+      args:
+        - PYTHON_VERSION=${PYTHON_VERSION:-3.11}
+    container_name: enterprise-ai-agent-registry
+    ports:
+      - "${AGENT_REGISTRY_PORT:-8012}:8012"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8012
+      - DEBUG=${DEBUG:-true}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONPATH=/app
+    env_file:
+      - .env
+    volumes:
+      # 源代码热重载
+      - ./agent-registry/src:/app/src:cached
+      # 避免覆盖虚拟环境
+      - agent_registry_venv:/app/venv
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8012/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+    command: >
+      sh -c "uvicorn src.main:app
+      --host 0.0.0.0
+      --port 8012
+      --reload
+      --reload-dir /app/src
+      --log-level $(echo ${LOG_LEVEL:-info} | tr '[:upper:]' '[:lower:]')"
+
+  # JoyAgent 适配器（可选，构建易失败时默认不启动；需时加 --profile joyagent）
+  joyagent-adapter:
+    profiles:
+      - joyagent
+    build:
+      context: .
+      dockerfile: joyagent-adapter/Dockerfile
+    container_name: enterprise-ai-joyagent-adapter
+    ports:
+      - "${JOYAGENT_ADAPTER_PORT:-8007}:8007"
+      - "${JOYAGENT_BACKEND_PORT:-8082}:8080"  # 映射到8082避免端口冲突
+      - "${JOYAGENT_UI_PORT:-3001}:3000"  # 映射到3001避免与web-ui冲突
+      - "${JOYAGENT_CLIENT_PORT:-1601}:1601"
+    environment:
+      - SERVICE_HOST=joyagent-adapter
+      - SERVICE_PORT=8007
+      - REGISTRY_SERVICE_URL=http://registry-service:8000
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-ai_user}
+      - DB_PASSWORD=${DB_PASSWORD:-ai_password}
+      - DB_NAME=${DB_NAME:-ai_platform}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - PYTHONUNBUFFERED=1
+      - MCP_GATEWAY_URL=http://mcp-gateway:8001
+      - WORKFLOW_ENGINE_URL=http://workflow-engine:8002
+      - AUTH_SERVICE_URL=http://auth-service:8003
+      - KNOWLEDGE_BASE_URL=http://knowledge-base:8004
+      - METADATA_SERVICE_URL=http://metadata-service:8005
+      - API_GATEWAY_URL=http://api-gateway:8080
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      registry-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8007/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+
+  # Memory Service - 记忆服务
+  memory-service:
+    build:
+      context: ./memory-service
+      dockerfile: Dockerfile.dev
+      args:
+        - PYTHON_VERSION=${PYTHON_VERSION:-3.11}
+    container_name: enterprise-ai-memory-service
+    ports:
+      - "${MEMORY_SERVICE_PORT:-8013}:8013"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8013
+      - DEBUG=${DEBUG:-true}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=postgres
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - QDRANT_COLLECTION=memories
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONPATH=/app
+    env_file:
+      - .env
+    volumes:
+      # 源代码热重载
+      - ./memory-service/src:/app/src:cached
+      # 避免覆盖虚拟环境
+      - memory_service_venv:/app/venv
+    depends_on:
+      - postgres
+      - redis
+      - qdrant
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8013/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+    command: >
+      sh -c "uvicorn src.main:app
+      --host 0.0.0.0
+      --port 8013
+      --reload
+      --reload-dir /app/src"
+
+  # Qdrant - 向量数据库
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: enterprise-ai-qdrant
+    ports:
+      - "${QDRANT_PORT:-6333}:6333"
+      - "${QDRANT_GRPC_PORT:-6334}:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 10s
+      retries: 5
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+
+  # Neo4j - 图数据库
+  neo4j:
+    image: neo4j:5-community
+    container_name: enterprise-ai-neo4j
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-neo4j_password}
+      # 针对2h4g服务器优化：仅启用APOC插件（Graph Data Science需要更多内存）
+      NEO4J_PLUGINS: '["apoc"]'
+      # 针对4GB服务器的最小内存配置
+      # Heap: 512MB-1GB (降低初始和最大堆内存)
+      NEO4J_dbms_memory_heap_initial__size: 512m
+      NEO4J_dbms_memory_heap_max__size: 1G
+      # PageCache: 512MB (降低页面缓存)
+      NEO4J_dbms_memory_pagecache_size: 512m
+      # 事务内存：256MB
+      NEO4J_dbms_memory_transaction_total_max: 256M
+      # 性能优化（针对低内存环境）
+      NEO4J_dbms_transaction_timeout: 60s
+      NEO4J_dbms_lock_acquisition_timeout: 10s
+      # 允许从容器外部访问（仅开发环境）
+      NEO4J_dbms_connector_bolt_listen__address: 0.0.0.0:7687
+      NEO4J_dbms_connector_http_listen__address: 0.0.0.0:7474
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_import:/var/lib/neo4j/import
+    ports:
+      - "127.0.0.1:${NEO4J_HTTP_PORT:-7474}:7474"  # HTTP
+      - "127.0.0.1:${NEO4J_BOLT_PORT:-7687}:7687"  # Bolt
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "${NEO4J_PASSWORD:-neo4j_password}", "RETURN 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          # 针对4GB服务器：限制Neo4j最多使用1.5GB内存
+          memory: 1.5G
+        reservations:
+          # 预留1GB内存
+          memory: 1G
+
+  # SAP Metadata Agent - SAP元数据智能体（可选，默认不启动以保持 19 服务）
+  sap-metadata-agent:
+    profiles:
+      - optional
+    build:
+      context: ./sap-metadata-agent
+      dockerfile: Dockerfile.dev
+      args:
+        - PYTHON_VERSION=${PYTHON_VERSION:-3.11}
+    container_name: enterprise-ai-sap-metadata-agent
+    ports:
+      - "${SAP_METADATA_AGENT_PORT:-8015}:8015"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8015
+      - DEBUG=${DEBUG:-true}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      # SAP数据库配置（可选）
+      - SAP_DB_TYPE=${SAP_DB_TYPE:-hdb}
+      - SAP_DB_HOST=${SAP_DB_HOST:-}
+      - SAP_DB_PORT=${SAP_DB_PORT:-33015}
+      - SAP_DB_NAME=${SAP_DB_NAME:-}
+      - SAP_DB_USER=${SAP_DB_USER:-}
+      - SAP_DB_PASSWORD=${SAP_DB_PASSWORD:-}
+      # 服务集成配置
+      - CONFIG_CENTER_URL=http://config-center:8090
+      - MCP_GATEWAY_URL=http://mcp-gateway:8001
+      - METADATA_SERVICE_URL=http://metadata-service:8005
+      - KNOWLEDGE_BASE_URL=http://knowledge-base:8004
+      - AGENT_SERVICE_URL=http://agent-service:8010
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONPATH=/app
+    env_file:
+      - .env
+    volumes:
+      # 源代码热重载
+      - ./sap-metadata-agent/src:/app/src:cached
+      # 构建脚本和工具脚本（热加载，可直接在容器内运行）
+      - ./sap-metadata-agent:/app/scripts:cached
+      # 共享库
+      - ./shared_libs:/shared_libs:cached
+      # 避免覆盖虚拟环境
+      - sap_metadata_agent_venv:/app/venv
+    depends_on:
+      - metadata-service
+      - mcp-gateway
+      - config-center
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8015/api/sap-metadata/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+    command: >
+      sh -c "uvicorn src.main:app
+      --host 0.0.0.0
+      --port 8015
+      --reload
+      --reload-dir /app/src
+      --log-level $(echo ${LOG_LEVEL:-info} | tr '[:upper:]' '[:lower:]')"
+
+  # Project Management Service - 项目管理服务（可选，默认不启动以保持 19 服务）
+  project-management:
+    profiles:
+      - optional
+    build:
+      context: ./project_management
+      dockerfile: Dockerfile.dev
+      args:
+        - PYTHON_VERSION=${PYTHON_VERSION:-3.11}
+    container_name: enterprise-ai-project-management
+    ports:
+      - "${PROJECT_MANAGEMENT_PORT:-8016}:8016"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8016
+      - DEBUG=${DEBUG:-true}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-ai_user}
+      - DB_PASSWORD=${DB_PASSWORD:-ai_password}
+      - DB_NAME=${DB_NAME:-ai_platform}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONPATH=/app:/:/database:/shared_libs
+    env_file:
+      - .env
+    volumes:
+      # 源代码热重载
+      - ./project_management/src:/app/src:cached
+      # 数据库和共享库
+      - ./database/src:/database/src:cached
+      - ./shared_libs:/shared_libs:cached
+      # 避免覆盖虚拟环境
+      - project_management_venv:/app/venv
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      registry-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8016/api/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+    command: >
+      sh -c "uvicorn src.main:app
+      --host 0.0.0.0
+      --port 8016
+      --reload
+      --reload-dir /app/src"
+
+  # Vector Coordinator Service - 向量协调服务（可选，默认不启动以保持 19 服务）
+  vector-coordinator-service:
+    profiles:
+      - optional
+    build:
+      context: .
+      dockerfile: vector-coordinator-service/Dockerfile.dev
+      args:
+        - PYTHON_VERSION=${PYTHON_VERSION:-3.11}
+    container_name: enterprise-ai-vector-coordinator
+    ports:
+      - "${VECTOR_COORDINATOR_PORT:-8020}:8020"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8020
+      - DEBUG=${DEBUG:-true}
+      - EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
+      - EMBEDDING_DEVICE=cpu
+      - FUSION_STRATEGY=weighted_average
+      - SIMILARITY_METRIC=cosine
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - USE_QDRANT=true
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONPATH=/app:/app/shared_libs
+      - HF_ENDPOINT=https://hf-mirror.com
+    env_file:
+      - .env
+    volumes:
+      - ./vector-coordinator-service/src:/app/src:cached
+      - ./shared_libs:/app/shared_libs:cached
+      - vector_coordinator_venv:/app/venv
+    depends_on:
+      - registry-service
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8020/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+    command: >
+      sh -c "uvicorn src.main:app
+      --host 0.0.0.0
+      --port 8020
+      --reload
+      --reload-dir /app/src"
+
+  # Deployment Agent Service - 部署协调智能体服务（可选，默认不启动以保持 19 服务）
+  deployment-agent:
+    profiles:
+      - optional
+    build:
+      context: ./deployment-agent
+      dockerfile: Dockerfile
+    container_name: enterprise-ai-deployment-agent
+    ports:
+      - "${DEPLOYMENT_AGENT_PORT:-8007}:8000"
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - WATCH_PATH=/workspace
+      - WORKDIR=/app/workdir
+      - SCRIPTS_DIR=/workspace/scripts/deployment
+      - PROJECT_ROOT=/workspace
+      - SSH_CONFIG_PATH=/app/config/remote.ssh
+      - APP_SERVER_KEY=/app/keys/app-server.pem
+      - NEO4J_SERVER_KEY=/app/keys/neo4j-server.pem
+    volumes:
+      # 代码目录：只读挂载（智能体只读监控）
+      - .:/workspace:ro
+      # 智能体工作目录：可写挂载（用于临时文件、日志、配置）
+      - ./deployment-agent/workdir:/app/workdir:rw
+      # SSH密钥：只读挂载
+      - ./enterprise_ai_platform.pem:/app/keys/app-server.pem:ro
+      - ./Neo4j.pem:/app/keys/neo4j-server.pem:ro
+      # SSH配置：只读挂载
+      - ./remote.ssh:/app/config/remote.ssh:ro
+      # 现有脚本目录：只读挂载（调用现有脚本）
+      - ./scripts:/workspace/scripts:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+    driver: local
+  mcp_gateway_venv:
+    driver: local
+  workflow_engine_venv:
+    driver: local
+  web_ui_node_modules:
+    driver: local
+  sap_mcp_server_node_modules:
+    driver: local
+  web_ui_next:
+    driver: local
+  auth_service_venv:
+    driver: local
+  knowledge_base_venv:
+    driver: local
+  knowledge_base_documents:
+    driver: local
+  knowledge_base_chroma:
+    driver: local
+  postgres_data:
+    driver: local
+  agent_service_venv:
+    driver: local
+  agent_orchestrator_venv:
+    driver: local
+  agent_registry_venv:
+    driver: local
+  metadata_service_venv:
+    driver: local
+  chat_service_venv:
+    driver: local
+  dag_orchestrator_venv:
+    driver: local
+  api_gateway_venv:
+    driver: local
+  registry_service_venv:
+    driver: local
+  config_center_venv:
+    driver: local
+  memory_service_venv:
+    driver: local
+  sap_metadata_agent_venv:
+    driver: local
+  vector_coordinator_venv:
+    driver: local
+  project_management_venv:
+    driver: local
+  qdrant_data:
+    driver: local
+  neo4j_data:
+    driver: local
+  neo4j_logs:
+    driver: local
+  neo4j_import:
+    driver: local
+
+networks:
+  enterprise-ai-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

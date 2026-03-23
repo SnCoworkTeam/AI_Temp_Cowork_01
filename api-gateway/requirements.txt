@@ -1,0 +1,15 @@
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+redis>=5.0.0
+httpx>=0.25.0
+python-multipart>=0.0.6
+aiohttp>=3.9.0
+slowapi>=0.1.9
+circuitbreaker>=2.0.0
+prometheus-client>=0.19.0
+websockets>=12.0
+# Database dependencies for feedback and value metrics services
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0

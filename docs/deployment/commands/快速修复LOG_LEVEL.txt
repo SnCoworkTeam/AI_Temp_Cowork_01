@@ -1,0 +1,26 @@
+# 快速修复LOG_LEVEL问题
+# 在服务器上执行
+
+cd /opt/enterprise-ai-platform
+
+# 方法1: 修改.env文件（最简单）
+sed -i 's/^LOG_LEVEL=.*$/LOG_LEVEL=info/' .env
+
+# 验证修改
+grep LOG_LEVEL .env
+
+# 重启mcp-gateway
+sudo docker compose restart mcp-gateway
+
+# 等待启动
+sleep 15
+
+# 检查状态
+sudo docker compose ps mcp-gateway
+
+# 查看日志（应该没有错误了）
+sudo docker compose logs --tail=20 mcp-gateway
+
+# 测试服务
+curl http://localhost:8001/api/health
+

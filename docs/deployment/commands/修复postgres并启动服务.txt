@@ -1,0 +1,85 @@
+# 修复postgres并启动所有服务的步骤
+# postgres容器已退出，需要检查原因并重新启动
+
+cd /opt/enterprise-ai-platform
+
+# ============================================
+# 步骤1: 检查postgres退出原因
+# ============================================
+sudo docker logs --tail=50 enterprise-ai-postgres
+
+# 检查postgres容器详细信息
+sudo docker inspect enterprise-ai-postgres | grep -A 15 "State"
+
+# ============================================
+# 步骤2: 重新启动postgres
+# ============================================
+# 方法1: 使用docker compose启动（推荐）
+sudo docker compose up -d postgres
+
+# 方法2: 如果方法1失败，直接启动容器
+sudo docker start enterprise-ai-postgres
+
+# 等待postgres启动（约15秒）
+sleep 15
+
+# 检查postgres状态
+sudo docker ps | grep postgres
+
+# 测试postgres连接
+sudo docker exec enterprise-ai-postgres pg_isready -U postgres
+
+# ============================================
+# 步骤3: 启动redis服务
+# ============================================
+# 注意：redis-commander是管理工具，我们需要redis服务本身
+sudo docker compose up -d redis
+
+# 等待redis启动（约5秒）
+sleep 5
+
+# 检查redis状态
+sudo docker ps | grep enterprise-ai-redis
+
+# 测试redis连接
+sudo docker exec enterprise-ai-redis redis-cli ping
+
+# ============================================
+# 步骤4: 验证基础服务
+# ============================================
+sudo docker compose ps postgres redis
+
+# 应该看到两个服务都是 "Up" 状态
+
+# ============================================
+# 步骤5: 启动mcp-gateway
+# ============================================
+sudo docker compose up -d mcp-gateway
+
+# 等待启动（约10秒）
+sleep 10
+
+# 检查mcp-gateway状态
+sudo docker compose ps mcp-gateway
+
+# 查看日志
+sudo docker compose logs --tail=50 mcp-gateway
+
+# 测试健康检查
+curl http://localhost:8001/api/health
+
+# ============================================
+# 如果postgres无法启动，尝试重新创建
+# ============================================
+# 停止并删除postgres容器
+sudo docker compose stop postgres
+sudo docker compose rm -f postgres
+
+# 重新创建并启动
+sudo docker compose up -d postgres
+
+# ============================================
+# 一键启动命令（忽略网络警告）
+# ============================================
+sudo docker start enterprise-ai-postgres && sleep 15 && sudo docker compose up -d redis && sleep 5 && sudo docker compose up -d mcp-gateway && sleep 10 && sudo docker compose ps
+

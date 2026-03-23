@@ -1,0 +1,42 @@
+# 修复PYTHONPATH配置 - 上传并重启
+# 问题：PYTHONPATH=/app:/shared_libs:/database 导致Python无法找到shared_libs包
+# 解决：改为 PYTHONPATH=/app:/:/database
+
+# ============================================
+# 第一步：在本地PowerShell上传修复后的docker-compose.yml
+# ============================================
+# 在本地Windows PowerShell中执行：
+
+scp -i "E:\enterprise-ai-platform\enterprise_ai_platform.pem" -o StrictHostKeyChecking=no docker-compose.yml ubuntu@43.143.139.197:/opt/enterprise-ai-platform/
+
+# ============================================
+# 第二步：在服务器上重新创建容器
+# ============================================
+# SSH到服务器后执行：
+
+cd /opt/enterprise-ai-platform
+
+# 1. 停止并删除mcp-gateway容器
+sudo docker compose stop mcp-gateway
+sudo docker compose rm -f mcp-gateway
+
+# 2. 重新创建并启动（使用新的PYTHONPATH）
+sudo docker compose up -d mcp-gateway
+
+# 3. 等待启动
+sleep 20
+
+# 4. 检查状态
+sudo docker compose ps mcp-gateway
+
+# 5. 查看日志（应该没有导入错误了）
+sudo docker compose logs --tail=30 mcp-gateway
+
+# 6. 测试服务
+curl http://localhost:8001/api/health
+
+# ============================================
+# 一键执行命令（服务器上）
+# ============================================
+cd /opt/enterprise-ai-platform && sudo docker compose stop mcp-gateway && sudo docker compose rm -f mcp-gateway && sudo docker compose up -d mcp-gateway && sleep 20 && echo "=== Status ===" && sudo docker compose ps mcp-gateway && echo "" && echo "=== Logs ===" && sudo docker compose logs --tail=20 mcp-gateway && echo "" && echo "=== Test ===" && curl -s http://localhost:8001/api/health
+

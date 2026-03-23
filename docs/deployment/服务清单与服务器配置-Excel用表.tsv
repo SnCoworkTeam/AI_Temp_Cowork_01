@@ -1,0 +1,102 @@
+企业AI平台 - 服务清单与服务器配置（复制到Excel时，整段复制后粘贴，Excel会按制表符分列）
+
+========== 表1：平台基础服务（非AI） ==========
+服务名	端口	说明	依赖
+postgres	5432	PostgreSQL主库	-
+redis	6379	缓存/会话	-
+redis-commander	8081	Redis管理界面（仅开发）	redis
+qdrant	6333/6334	向量数据库	-
+neo4j	7474/7687	图数据库	-
+minio	9000/9001	对象存储（文档/报表等）	-
+registry-service	8000	服务注册与发现	redis
+api-gateway	8080	统一API网关	redis, registry-service
+config-center	8090	配置中心	redis, registry-service
+auth-service	8003	认证与用户	postgres, redis
+project-management	8016	项目管理	postgres, redis, registry-service
+
+========== 表2：集成与网关类 ==========
+服务名	端口	说明	依赖
+mcp-gateway	8001	MCP工具网关	postgres, redis
+sap-mcp-server	3001	SAP OData MCP服务（Node）	config-center
+workflow-engine	8002	工作流引擎（含LLM调用）	postgres, redis
+dag-orchestrator	8009	DAG编排	mcp-gateway, workflow-engine, knowledge-base, chat-service
+
+========== 表3：AI与智能体服务 ==========
+服务名	端口	说明	依赖
+knowledge-base	8004	知识库（向量/Chroma+嵌入模型）	postgres, redis
+metadata-service	8005	元数据与关系发现（可调LLM）	postgres, redis
+chat-service	8006	对话管理	postgres, redis
+agent-service	8010	智能体核心	postgres, redis, mcp-gateway, workflow-engine, dag-orchestrator, knowledge-base, chat-service, memory-service, metadata-service
+agent-orchestrator	8011	智能体编排	agent-service, registry-service, config-center
+agent-registry	8012	智能体注册中心	redis
+memory-service	8013	记忆服务（向量存储用Qdrant）	postgres, redis, qdrant
+sap-metadata-agent	8015	SAP元数据智能体	metadata-service, mcp-gateway, config-center
+vector-coordinator-service	8020	向量协调（嵌入+Qdrant）	registry-service, qdrant
+
+========== 表4：其他服务 ==========
+服务名	端口	说明	依赖
+web-ui	3000	Next.js前端	api-gateway, workflow-engine
+
+========== 表5：单服务资源估算（参考） ==========
+类型	内存（最低→推荐）	CPU（核）	说明
+postgres	512MB→2GB	0.5→2	shared_buffers=256MB，生产建议2GB+
+redis	64MB→256MB	0.25	小数据量64MB即可
+redis-commander	64MB→128MB	0.25	仅开发
+qdrant	256MB→1GB	0.5→1	随向量数据量增长
+neo4j	1GB→2GB	0.5→1	项目已限1.5GB，heap 1G+pagecache 512m
+minio	512MB→2GB	0.5→1	对象存储，磁盘按容量单独规划
+registry-service	256MB→512MB	0.5	Python FastAPI
+api-gateway	256MB→512MB	0.5	Python
+config-center	256MB→512MB	0.5	Python
+mcp-gateway	256MB→512MB	0.5	Python
+sap-mcp-server	256MB→512MB	0.5	Node
+workflow-engine	512MB→1GB	0.5→1	含LangChain/LLM调用
+web-ui	384MB→768MB	0.5→1	Next.js
+auth-service	256MB→512MB	0.5	Python
+knowledge-base	1GB→2.5GB	0.5→1	Chroma+嵌入模型，CPU推理
+metadata-service	512MB→1GB	0.5→1	可能调LLM
+chat-service	256MB→512MB	0.5	Python
+dag-orchestrator	256MB→512MB	0.5	Python
+agent-service	512MB→1GB	0.5→1	智能体+LLM调用
+agent-orchestrator	256MB→512MB	0.5	Python
+agent-registry	256MB→512MB	0.5	Python
+memory-service	256MB→512MB	0.5	Python+Qdrant客户端
+sap-metadata-agent	256MB→512MB	0.5	Python
+project-management	256MB→512MB	0.5	Python
+vector-coordinator-service	512MB→1GB	0.5→1	嵌入模型+Qdrant
+
+========== 表6：开发环境（单台服务器） ==========
+配置类型	CPU	内存	磁盘	说明
+最低可运行	8核	16 GB	100 GB SSD	可关闭部分非必需服务
+推荐配置	8核	32 GB	200 GB SSD	全量服务常开、体验顺畅
+
+========== 表7：生产-数据库/存储服务器（每种独立一台） ==========
+角色	数量	CPU（最低→推荐）	内存（最低→推荐）	磁盘	备注
+PostgreSQL服务器	1	4核→8核	8 GB→16 GB	200 GB→500 GB SSD	主库；含WAL、备份空间
+Qdrant服务器	1	2核→4核	4 GB→8 GB	100 GB→300 GB SSD	向量库，随数据量扩展
+Neo4j服务器	1	2核→4核	4 GB→8 GB	100 GB→200 GB SSD	图库；heap+pagecache
+MinIO服务器	1	2核→4核	4 GB→8 GB	500 GB+（按对象量）	对象存储，可HDD/SSD混合
+
+========== 表8：生产-应用服务器（Redis+全部应用） ==========
+配置类型	CPU	内存	磁盘	说明
+最低可运行	8核	16 GB	100 GB SSD	Redis+全部应用，需限制并发与worker
+推荐稳定运行	16核	32 GB	200 GB SSD	Redis+全量微服务+网关+Web UI，预留缓冲与监控
+
+========== 表9：生产-多机拆分示例（PG/Qdrant/Neo4j/MinIO各1台+应用1台） ==========
+角色	数量	CPU	内存	磁盘	备注
+PostgreSQL服务器（推荐）	1	8核	16 GB	500 GB SSD	仅PostgreSQL
+Qdrant服务器（推荐）	1	4核	8 GB	300 GB SSD	仅Qdrant
+Neo4j服务器（推荐）	1	4核	8 GB	200 GB SSD	仅Neo4j
+MinIO服务器（推荐）	1	4核	8 GB	按对象量（如1TB+）	仅MinIO
+应用服务器（推荐）	1	16核	32 GB	200 GB SSD	Redis+全部业务与AI服务+网关+Web UI
+PostgreSQL服务器（最低）	1	4核	8 GB	200 GB SSD	-
+Qdrant服务器（最低）	1	2核	4 GB	100 GB SSD	-
+Neo4j服务器（最低）	1	2核	4 GB	100 GB SSD	-
+MinIO服务器（最低）	1	2核	4 GB	500 GB	-
+应用服务器（最低）	1	8核	16 GB	100 GB SSD	-
+
+========== 表10：汇总表（选型用） ==========
+环境	拓扑	说明
+开发	单机全量	8核，16GB（最低）/32GB（推荐），100/200 GB SSD；可关部分服务省内存
+生产-最低	4台数据库/存储+1台应用	PG/Qdrant/Neo4j/MinIO各1台（见表7）；应用1台8核16GB 100GB（Redis+全部应用）
+生产-推荐	4台数据库/存储+1台应用	PG/Qdrant/Neo4j/MinIO各1台（见表9推荐）；应用1台16核32GB 200GB（Redis+全部应用）

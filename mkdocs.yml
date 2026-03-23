@@ -1,0 +1,74 @@
+site_name: 企业AI平台文档
+site_description: 企业AI平台完整文档
+site_url: https://docs.example.com
+repo_url: https://github.com/your-org/enterprise-ai-platform
+repo_name: enterprise-ai-platform
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: 切换到深色模式
+    - scheme: dark
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: 切换到浅色模式
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+
+nav:
+  - 首页: index.md
+  - API文档:
+    - API概览: api-docs/README.md
+    - MCP Gateway: api-docs/openapi/mcp-gateway-openapi.yaml
+    - Workflow Engine: api-docs/openapi/workflow-engine-openapi.yaml
+    - Auth Service: api-docs/openapi/auth-service-openapi.yaml
+    - Knowledge Base: api-docs/openapi/knowledge-base-openapi.yaml
+    - 使用示例: api-docs/examples/
+  - 架构文档:
+    - 架构概览: architecture-docs/system-overview/system-architecture.md
+    - 架构决策记录: architecture-docs/decision-records/
+    - 设计模式: architecture-docs/design-patterns/
+  - 开发文档:
+    - 环境搭建: development-docs/setup-guide/development-environment.md
+    - 编码规范: development-docs/coding-standards/python-standards.md
+    - 测试指南: development-docs/testing-guide/getting-started.md
+    - 部署指南: development-docs/deployment-guide/production-deployment.md
+  - 自动生成文档:
+    - 代码文档: auto-generated/code-docs/
+    - 依赖图: auto-generated/dependency-graphs/
+    - API参考: auto-generated/api-reference/
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [.]
+
+markdown_extensions:
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.tabbed
+  - admonition
+  - pymdownx.details
+
+
+
+
+
+
+
+
+

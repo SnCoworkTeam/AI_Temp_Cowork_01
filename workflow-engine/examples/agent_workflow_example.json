@@ -1,0 +1,52 @@
+{
+  "name": "智能代码审查流程",
+  "description": "使用智能体节点进行代码审查的测试工作流",
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start",
+      "name": "开始",
+      "description": "工作流开始节点"
+    },
+    {
+      "id": "code_review",
+      "type": "agent",
+      "name": "代码审查智能体",
+      "description": "使用智能体进行代码审查",
+      "config": {
+        "agent_id": "code_review_agent",
+        "input_mapping": {
+          "content": "input.code_content"
+        },
+        "output_mapping": {
+          "issues": "output.code_issues",
+          "suggestions": "output.improvement_suggestions"
+        },
+        "enable_streaming": true,
+        "timeout": 600,
+        "context_window_size": 20,
+        "enable_cache": true,
+        "cache_ttl": 3600
+      }
+    },
+    {
+      "id": "end",
+      "type": "end",
+      "name": "结束",
+      "description": "工作流结束节点"
+    }
+  ],
+  "edges": [
+    {
+      "from": "start",
+      "to": "code_review",
+      "condition": null
+    },
+    {
+      "from": "code_review",
+      "to": "end",
+      "condition": null
+    }
+  ]
+}
+

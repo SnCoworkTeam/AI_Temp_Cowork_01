@@ -1,0 +1,98 @@
+[
+  {
+    "id": "mapping:procurement:create_po:sap_create_po",
+    "activity_id": "activity:procurement:create_po",
+    "capability_id": "component:sap:create_po",
+    "mapping_type": "primary",
+    "confidence": 0.95,
+    "description": "创建采购订单主要使用SAP创建PO组件"
+  },
+  {
+    "id": "mapping:procurement:query_po:sap_query_po",
+    "activity_id": "activity:procurement:query_po",
+    "capability_id": "component:sap:query_po",
+    "mapping_type": "primary",
+    "confidence": 0.95,
+    "description": "查询采购订单使用SAP查询PO组件"
+  },
+  {
+    "id": "mapping:procurement:approve_po:workflow_approve",
+    "activity_id": "activity:procurement:approve_po",
+    "capability_id": "component:workflow:approve_po",
+    "mapping_type": "primary",
+    "confidence": 0.9,
+    "description": "审批采购订单使用工作流审批组件"
+  },
+  {
+    "id": "mapping:procurement:handle_exception:notification_send",
+    "activity_id": "activity:procurement:handle_exception",
+    "capability_id": "component:notification:send_alert",
+    "mapping_type": "primary",
+    "confidence": 0.85,
+    "description": "处理异常需要发送通知"
+  },
+  {
+    "id": "mapping:procurement:generate_report:report_generator",
+    "activity_id": "activity:procurement:generate_report",
+    "capability_id": "component:report:generate",
+    "mapping_type": "primary",
+    "confidence": 0.9,
+    "description": "生成报告使用报告生成组件"
+  },
+  {
+    "id": "mapping:procurement:check_inventory:sap_query_inventory",
+    "activity_id": "activity:procurement:check_inventory",
+    "capability_id": "component:sap:query_inventory",
+    "mapping_type": "primary",
+    "confidence": 0.95,
+    "description": "检查库存使用SAP查询库存组件"
+  },
+  {
+    "id": "mapping:procurement:contact_supplier:email_send",
+    "activity_id": "activity:procurement:contact_supplier",
+    "capability_id": "component:email:send",
+    "mapping_type": "primary",
+    "confidence": 0.9,
+    "description": "联系供应商使用邮件发送组件"
+  },
+  {
+    "id": "mapping:procurement:update_po:sap_update_po",
+    "activity_id": "activity:procurement:update_po",
+    "capability_id": "component:sap:update_po",
+    "mapping_type": "primary",
+    "confidence": 0.95,
+    "description": "更新采购订单使用SAP更新PO组件"
+  },
+  {
+    "id": "mapping:procurement:receive_goods:sap_receive_goods",
+    "activity_id": "activity:procurement:receive_goods",
+    "capability_id": "component:sap:receive_goods",
+    "mapping_type": "primary",
+    "confidence": 0.9,
+    "description": "收货确认使用SAP收货组件"
+  },
+  {
+    "id": "mapping:procurement:process_payment:payment_processor",
+    "activity_id": "activity:procurement:process_payment",
+    "capability_id": "component:payment:process",
+    "mapping_type": "primary",
+    "confidence": 0.85,
+    "description": "处理付款使用付款处理组件"
+  },
+  {
+    "id": "mapping:procurement:hold_payment:sap_payment_hold",
+    "activity_id": "activity:procurement:hold_payment",
+    "capability_id": "component:sap:payment_hold",
+    "mapping_type": "primary",
+    "confidence": 0.9,
+    "description": "暂停付款使用SAP付款暂停组件"
+  },
+  {
+    "id": "mapping:quality:verify_issue:quality_check_supplier",
+    "activity_id": "activity:quality:verify_issue",
+    "capability_id": "component:quality:check_supplier",
+    "mapping_type": "primary",
+    "confidence": 0.9,
+    "description": "验证质量问题使用供应商质量检查组件"
+  }
+]

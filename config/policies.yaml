@@ -1,0 +1,71 @@
+# 策略配置文件示例
+# 根据风险分析报告建议，支持YAML格式的策略配置
+
+policies:
+  # 1. 高管访问所有资源
+  - name: "高管访问所有资源"
+    description: "CEO、CTO、CFO可以访问所有资源"
+    condition_type: "role"
+    action: "allow"
+    priority: 100
+    enabled: true
+    allowed_roles:
+      - "CEO"
+      - "CTO"
+      - "CFO"
+  
+  # 2. 工作时间限制
+  - name: "工作时间限制"
+    description: "非工作时间需要审批"
+    condition_type: "time"
+    action: "require_approval"
+    priority: 50
+    enabled: true
+    time_range: [18, 9]  # 18:00-09:00需要审批
+  
+  # 3. 敏感资源操作需要审批
+  - name: "敏感资源删除需要审批"
+    description: "删除操作需要审批"
+    condition_type: "operation"
+    action: "require_approval"
+    priority: 80
+    enabled: true
+    operations:
+      - "delete"
+      - "remove"
+  
+  # 4. 数据实体访问限制
+  - name: "数据实体访问限制"
+    description: "普通用户只能查询数据实体，不能修改"
+    condition_type: "resource_type"
+    action: "restrict"
+    priority: 60
+    enabled: true
+    resource_types:
+      - "data_entity"
+    # 限制：只允许查询操作
+    restrictions:
+      - "只允许query操作"
+  
+  # 5. 业务对象创建需要审批
+  - name: "业务对象创建审批"
+    description: "创建业务对象需要审批"
+    condition_type: "resource_type"
+    action: "require_approval"
+    priority: 70
+    enabled: true
+    resource_types:
+      - "business_object"
+    operations:
+      - "create"
+  
+  # 6. 审计日志记录所有操作
+  - name: "审计日志记录"
+    description: "记录所有操作到审计日志"
+    condition_type: "role"
+    action: "log_only"
+    priority: 10
+    enabled: true
+    allowed_roles:
+      - "*"  # 所有角色
+

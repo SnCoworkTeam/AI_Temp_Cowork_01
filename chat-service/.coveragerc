@@ -1,0 +1,17 @@
+[run]
+omit =
+    */tests/*
+    */test_*.py
+    src/services/ai_service.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    @abstractmethod
+fail_under = 60
+precision = 2

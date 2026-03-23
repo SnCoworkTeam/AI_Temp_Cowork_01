@@ -1,0 +1,83 @@
+# 测试环境Docker Compose配置
+# 注意：此配置主要用于测试环境隔离，如果测试服务器上已有完整服务栈，可以直接使用docker-compose.yml
+version: '3.8'
+
+services:
+  # 测试数据库（可选，如果不想影响现有数据）
+  postgres-test:
+    image: postgres:15
+    container_name: enterprise-ai-postgres-test
+    environment:
+      POSTGRES_DB: ${TEST_DB_NAME:-ai_platform_test}
+      POSTGRES_USER: ${TEST_DB_USER:-test_user}
+      POSTGRES_PASSWORD: ${TEST_DB_PASSWORD:-test_pass}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+      - ./database/init-scripts:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5434:5432"  # 与主数据库端口错开
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TEST_DB_USER:-test_user} -d ${TEST_DB_NAME:-ai_platform_test}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+
+  # 测试Redis（可选）
+  redis-test:
+    image: redis:7-alpine
+    container_name: enterprise-ai-redis-test
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_test_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+
+  # 测试运行器（用于在容器中运行测试）
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: enterprise-ai-test-runner
+    environment:
+      - TEST_MODE=true
+      - API_GATEWAY_URL=http://api-gateway:8080
+      - AUTH_SERVICE_URL=http://auth-service:8003
+      - DATABASE_URL=postgresql://${TEST_DB_USER:-test_user}:${TEST_DB_PASSWORD:-test_pass}@postgres-test:5432/${TEST_DB_NAME:-ai_platform_test}
+      - REDIS_URL=redis://redis-test:6379/0
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./tests:/app/tests:cached
+      - ./services:/app/services:cached
+      - ./shared_libs:/app/shared_libs:cached
+      - ./database:/app/database:cached
+      - ./test-results:/app/test-results
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    networks:
+      - enterprise-ai-network
+    command: ["tail", "-f", "/dev/null"]  # 保持容器运行，手动执行测试
+
+volumes:
+  postgres_test_data:
+    driver: local
+  redis_test_data:
+    driver: local
+
+networks:
+  enterprise-ai-network:
+    external: true  # 使用现有的网络，以便连接到其他服务

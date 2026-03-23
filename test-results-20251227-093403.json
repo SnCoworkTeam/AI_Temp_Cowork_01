@@ -1,0 +1,48 @@
+{
+  "skipped": 5,
+  "total": 8,
+  "passed": 0,
+  "failed": 8,
+  "details": [
+    {
+      "Test": "TC-001: 查看项目列表",
+      "Status": "FAILED",
+      "Message": "Response status code does not indicate success: 502 (Bad Gateway). (状态码: 502)"
+    },
+    {
+      "Test": "TC-002: 项目列表筛选（规划中）",
+      "Status": "FAILED",
+      "Message": "Response status code does not indicate success: 502 (Bad Gateway). (状态码: 502)"
+    },
+    {
+      "Test": "TC-003: 项目列表API可用性",
+      "Status": "FAILED",
+      "Message": "Response status code does not indicate success: 502 (Bad Gateway). (状态码: 502)"
+    },
+    {
+      "Test": "TC-004: 创建新项目（基础信息）",
+      "Status": "FAILED",
+      "Message": "Response status code does not indicate success: 502 (Bad Gateway). (状态码: 502)"
+    },
+    {
+      "Test": "TC-005: 创建项目（完整信息）",
+      "Status": "FAILED",
+      "Message": "Response status code does not indicate success: 502 (Bad Gateway). (状态码: 502)"
+    },
+    {
+      "Test": "TC-010: 创建待删除的测试项目",
+      "Status": "FAILED",
+      "Message": "Response status code does not indicate success: 502 (Bad Gateway). (状态码: 502)"
+    },
+    {
+      "Test": "TC-013: 查看项目群列表",
+      "Status": "FAILED",
+      "Message": "Response status code does not indicate success: 502 (Bad Gateway). (状态码: 502)"
+    },
+    {
+      "Test": "TC-014: 创建项目群",
+      "Status": "FAILED",
+      "Message": "Response status code does not indicate success: 502 (Bad Gateway). (状态码: 502)"
+    }
+  ]
+}

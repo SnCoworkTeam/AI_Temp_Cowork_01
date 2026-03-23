@@ -1,0 +1,41 @@
+# 修复PYTHONPATH配置
+# 问题：PYTHONPATH=/app:/shared_libs:/database 导致Python无法找到shared_libs包
+# 原因：当sys.path包含/shared_libs时，Python会在/shared_libs/shared_libs/__init__.py查找，而不是/shared_libs/__init__.py
+
+# ============================================
+# 解决方案：修改PYTHONPATH为父目录
+# ============================================
+
+cd /opt/enterprise-ai-platform
+
+# 方案1: 修改docker-compose.yml中的PYTHONPATH（推荐）
+# 将 PYTHONPATH=/app:/shared_libs:/database
+# 改为 PYTHONPATH=/app:/:/database
+# 这样Python会在根目录(/)查找包，可以导入shared_libs
+
+# 检查当前配置
+echo "=== Current PYTHONPATH in docker-compose.yml ==="
+grep -A 1 "PYTHONPATH" docker-compose.yml
+
+# 修改配置（需要上传修复后的docker-compose.yml）
+# 或者临时修改环境变量
+
+# 方案2: 临时测试 - 修改容器环境变量
+echo ""
+echo "=== Testing with modified PYTHONPATH ==="
+sudo docker exec -e PYTHONPATH=/app:/:/database enterprise-ai-mcp-gateway python << 'EOF'
+import sys
+print("PYTHONPATH:", sys.path[:3])
+try:
+    import shared_libs
+    print("SUCCESS: shared_libs imported")
+    from shared_libs.schemas.monitoring_schemas import ServiceMonitoringData
+    print("SUCCESS: ServiceMonitoringData imported")
+except Exception as e:
+    print(f"FAILED: {e}")
+    import traceback
+    traceback.print_exc()
+EOF
+
+# 如果方案2成功，需要修改docker-compose.yml并重新创建容器
+

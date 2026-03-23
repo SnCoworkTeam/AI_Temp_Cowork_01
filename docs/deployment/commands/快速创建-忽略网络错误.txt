@@ -1,0 +1,26 @@
+# 快速创建服务 - 忽略网络错误
+# 网络错误不影响容器创建，可以忽略
+
+cd /opt/enterprise-ai-platform
+
+# 创建服务（忽略网络错误）
+sudo docker compose up -d postgres redis mcp-gateway
+
+# 等待几秒让容器创建
+sleep 5
+
+# 检查容器是否创建
+sudo docker ps -a | grep -E "postgres|redis|mcp-gateway"
+
+# 启动所有容器（如果已创建但未运行）
+sudo docker start enterprise-ai-postgres enterprise-ai-redis enterprise-ai-mcp-gateway 2>/dev/null
+
+# 等待服务启动
+sleep 20
+
+# 检查运行状态
+sudo docker ps
+
+# 测试服务
+curl http://localhost:8001/api/health
+

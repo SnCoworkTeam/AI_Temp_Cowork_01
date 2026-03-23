@@ -1,0 +1,182 @@
+[
+  {
+    "id": "component:sap:create_po",
+    "name": "SAP采购订单创建组件",
+    "capability_type": "Component",
+    "endpoint": "http://sap-mcp-server/api/po/create",
+    "description": "在SAP系统中创建标准采购订单",
+    "input_schema": {
+      "supplier_code": {
+        "type": "string",
+        "required": true,
+        "description": "供应商编码"
+      },
+      "material_code": {
+        "type": "string",
+        "required": true,
+        "description": "物料编码"
+      },
+      "quantity": {
+        "type": "integer",
+        "required": true,
+        "description": "采购数量"
+      },
+      "delivery_date": {
+        "type": "string",
+        "format": "date",
+        "required": true,
+        "description": "交货日期，格式：YYYY-MM-DD"
+      },
+      "purchase_org": {
+        "type": "string",
+        "required": false,
+        "default": "1000",
+        "description": "采购组织"
+      },
+      "unit_price": {
+        "type": "number",
+        "required": false,
+        "description": "单价，如果不提供则从信息记录获取"
+      }
+    },
+    "output_schema": {
+      "po_number": {
+        "type": "string",
+        "description": "采购订单号"
+      },
+      "status": {
+        "type": "string",
+        "description": "订单状态"
+      },
+      "net_amount": {
+        "type": "float",
+        "description": "净金额"
+      },
+      "created_at": {
+        "type": "string",
+        "format": "datetime",
+        "description": "创建时间"
+      }
+    },
+    "capability_tags": ["sap", "purchase_order", "create"],
+    "business_domain": "procurement",
+    "version": "1.0.0"
+  },
+  {
+    "id": "component:quality:check_supplier",
+    "name": "供应商质量检查组件",
+    "capability_type": "Component",
+    "endpoint": "http://quality-service/api/check",
+    "description": "检查供应商的历史质量记录和问题",
+    "input_schema": {
+      "supplier_code": {
+        "type": "string",
+        "required": true,
+        "description": "供应商编码"
+      },
+      "days_back": {
+        "type": "integer",
+        "required": false,
+        "default": 90,
+        "description": "查询最近多少天的记录"
+      }
+    },
+    "output_schema": {
+      "quality_score": {
+        "type": "float",
+        "description": "质量评分（0-5分）"
+      },
+      "issues_count": {
+        "type": "integer",
+        "description": "质量问题数量"
+      },
+      "issue_details": {
+        "type": "array",
+        "description": "质量问题详情列表",
+        "items": {
+          "type": "object",
+          "properties": {
+            "issue_id": {"type": "string"},
+            "issue_date": {"type": "string"},
+            "issue_type": {"type": "string"},
+            "severity": {"type": "string"},
+            "description": {"type": "string"},
+            "status": {"type": "string"}
+          }
+        }
+      },
+      "recommendation": {
+        "type": "string",
+        "description": "处理建议"
+      }
+    },
+    "capability_tags": ["quality", "supplier", "check"],
+    "business_domain": "procurement",
+    "version": "1.0.0"
+  },
+  {
+    "id": "component:sap:payment_hold",
+    "name": "SAP付款暂停组件",
+    "capability_type": "Component",
+    "endpoint": "http://sap-mcp-server/api/payment/hold",
+    "description": "在SAP系统中暂停对供应商的付款",
+    "input_schema": {
+      "supplier_code": {
+        "type": "string",
+        "required": true,
+        "description": "供应商编码"
+      },
+      "po_numbers": {
+        "type": "array",
+        "required": true,
+        "description": "需要暂停付款的采购订单号列表",
+        "items": {
+          "type": "string"
+        }
+      },
+      "reason": {
+        "type": "string",
+        "required": true,
+        "description": "暂停付款原因"
+      },
+      "hold_type": {
+        "type": "string",
+        "required": false,
+        "default": "quality_issue",
+        "enum": ["quality_issue", "contract_breach", "other"],
+        "description": "暂停类型"
+      }
+    },
+    "output_schema": {
+      "hold_id": {
+        "type": "string",
+        "description": "暂停付款记录ID"
+      },
+      "affected_orders": {
+        "type": "array",
+        "description": "受影响的订单列表",
+        "items": {
+          "type": "object",
+          "properties": {
+            "po_number": {"type": "string"},
+            "status": {"type": "string"},
+            "amount": {"type": "float"}
+          }
+        }
+      },
+      "status": {
+        "type": "string",
+        "description": "操作状态"
+      },
+      "created_at": {
+        "type": "string",
+        "format": "datetime",
+        "description": "创建时间"
+      }
+    },
+    "capability_tags": ["sap", "payment", "hold"],
+    "business_domain": "procurement",
+    "version": "1.0.0"
+  }
+]
+

@@ -1,0 +1,64 @@
+# 启动所有服务的最终步骤
+# postgres是正常关闭的，只需重新启动
+
+cd /opt/enterprise-ai-platform
+
+# ============================================
+# 步骤1: 启动postgres（直接启动现有容器）
+# ============================================
+sudo docker start enterprise-ai-postgres
+
+# 等待postgres就绪（约10-15秒）
+sleep 15
+
+# 验证postgres是否运行
+sudo docker ps | grep postgres
+
+# 测试postgres连接
+sudo docker exec enterprise-ai-postgres pg_isready -U postgres
+
+# ============================================
+# 步骤2: 启动redis服务
+# ============================================
+sudo docker compose up -d redis
+
+# 等待redis就绪（约5秒）
+sleep 5
+
+# 验证redis是否运行
+sudo docker ps | grep enterprise-ai-redis
+
+# 测试redis连接
+sudo docker exec enterprise-ai-redis redis-cli ping
+
+# ============================================
+# 步骤3: 验证基础服务状态
+# ============================================
+sudo docker compose ps postgres redis
+
+# 应该看到两个服务都是 "Up" 状态
+
+# ============================================
+# 步骤4: 启动mcp-gateway
+# ============================================
+sudo docker compose up -d mcp-gateway
+
+# 等待启动（约10-15秒）
+sleep 15
+
+# ============================================
+# 步骤5: 检查所有服务状态
+# ============================================
+sudo docker compose ps
+
+# 查看mcp-gateway日志
+sudo docker compose logs --tail=50 mcp-gateway
+
+# 测试健康检查
+curl http://localhost:8001/api/health
+
+# ============================================
+# 一键启动命令（复制执行）
+# ============================================
+sudo docker start enterprise-ai-postgres && sleep 15 && sudo docker compose up -d redis && sleep 5 && sudo docker compose up -d mcp-gateway && sleep 15 && sudo docker compose ps && echo "" && echo "Testing services..." && curl http://localhost:8001/api/health
+

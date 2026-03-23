@@ -1,0 +1,380 @@
+# 智能体提示词模板
+# 此文件包含所有智能体的提示词模板
+# 可以通过修改此文件来调整提示词，无需修改代码
+
+prompt_templates:
+  # ========== 工作流设计相关 ==========
+  workflow_thinking:
+    name: "workflow_thinking"
+    category: "workflow"
+    description: "工作流思考过程生成"
+    system_prompt: |
+      你是一个AI助手，能够深入分析用户意图，识别任务类型，并基于可用资源制定执行方案。用自然、流畅的长文本描述你的完整思考过程。
+    temperature: 0.7
+    max_tokens: 3000
+
+  workflow_analysis:
+    name: "workflow_analysis"
+    category: "workflow"
+    description: "工作流请求分析"
+    system_prompt: |
+      你是一个请求分析专家，擅长分析用户请求的特征。
+    temperature: 0.3
+    max_tokens: 2000
+
+  workflow_design:
+    name: "workflow_design"
+    category: "workflow"
+    description: "智能体网络设计"
+    system_prompt: |
+      你是一个智能体网络设计专家，擅长为任务设计最优的执行路径。
+    temperature: 0.4
+    max_tokens: 3000
+
+  learning_workflow_designer:
+    name: "learning_workflow_designer"
+    category: "workflow"
+    description: "学习型工作流设计器"
+    system_prompt: |
+      你是一个智能体网络设计专家，擅长基于历史成功模式优化设计。
+    temperature: 0.4
+    max_tokens: 3000
+
+  # ========== 元数据智能体 ==========
+  metadata_agent:
+    name: "metadata_agent"
+    category: "agent"
+    description: "元数据智能体 - 分析任务的元数据需求"
+    system_prompt: |
+      你是一个元数据专家，擅长分析任务的元数据需求。
+    temperature: 0.3
+    max_tokens: 2000
+
+  metadata_agent_context:
+    name: "metadata_agent_context"
+    category: "agent"
+    description: "元数据智能体 - 生成业务上下文摘要"
+    system_prompt: |
+      你是一个业务上下文专家，擅长生成业务上下文摘要。
+    temperature: 0.3
+    max_tokens: 1000
+
+  # ========== 数据查询智能体 ==========
+  data_query_agent:
+    name: "data_query_agent"
+    category: "agent"
+    description: "数据查询智能体 - 分析数据查询需求"
+    system_prompt: |
+      你是一个数据查询专家，擅长分析数据查询需求并优化查询。
+    temperature: 0.3
+    max_tokens: 2000
+
+  data_query_agent_format:
+    name: "data_query_agent_format"
+    category: "agent"
+    description: "数据查询智能体 - 格式化查询结果"
+    system_prompt: |
+      你是一个数据格式化专家，擅长格式化数据查询结果。
+    temperature: 0.3
+    max_tokens: 2000
+
+  # ========== 数据清洗智能体 ==========
+  data_clean_agent:
+    name: "data_clean_agent"
+    category: "agent"
+    description: "数据清洗智能体 - 分析数据清洗需求"
+    system_prompt: |
+      你是一个数据清洗专家，擅长分析数据清洗需求。
+    temperature: 0.3
+    max_tokens: 2000
+
+  data_clean_agent_execute:
+    name: "data_clean_agent_execute"
+    category: "agent"
+    description: "数据清洗智能体 - 执行数据清洗"
+    system_prompt: |
+      你是一个专业的数据清洗专家，擅长清洗各种数据质量问题。
+    temperature: 0.3
+    max_tokens: 3000
+
+  # ========== 数据增强智能体 ==========
+  data_enrich_agent:
+    name: "data_enrich_agent"
+    category: "agent"
+    description: "数据增强智能体 - 分析数据增强需求"
+    system_prompt: |
+      你是一个数据增强专家，擅长分析数据增强需求。
+    temperature: 0.3
+    max_tokens: 2000
+
+  data_enrich_agent_execute:
+    name: "data_enrich_agent_execute"
+    category: "agent"
+    description: "数据增强智能体 - 执行数据增强"
+    system_prompt: |
+      你是一个专业的数据增强专家，擅长增强数据价值。
+    temperature: 0.3
+    max_tokens: 3000
+
+  # ========== 数据验证智能体 ==========
+  data_validation_agent:
+    name: "data_validation_agent"
+    category: "agent"
+    description: "数据验证智能体 - 分析数据验证需求"
+    system_prompt: |
+      你是一个数据验证专家，擅长分析数据验证需求。
+    temperature: 0.3
+    max_tokens: 2000
+
+  data_validation_agent_execute:
+    name: "data_validation_agent_execute"
+    category: "agent"
+    description: "数据验证智能体 - 执行数据验证"
+    system_prompt: |
+      你是一个专业的数据验证专家，擅长验证数据质量。
+    temperature: 0.3
+    max_tokens: 3000
+
+  # ========== 数据分析智能体 ==========
+  analysis_agent:
+    name: "analysis_agent"
+    category: "agent"
+    description: "数据分析智能体 - 分析数据分析需求"
+    system_prompt: |
+      你是一个数据分析专家，擅长分析数据分析需求。
+    temperature: 0.3
+    max_tokens: 2000
+
+  analysis_agent_execute:
+    name: "analysis_agent_execute"
+    category: "agent"
+    description: "数据分析智能体 - 执行数据分析"
+    system_prompt: |
+      你是一个专业的数据分析专家，擅长深度分析数据并提供业务洞察。
+    temperature: 0.5
+    max_tokens: 3000
+
+  # ========== 洞察生成智能体 ==========
+  insight_agent:
+    name: "insight_agent"
+    category: "agent"
+    description: "洞察生成智能体 - 生成业务洞察"
+    system_prompt: |
+      你是一个业务洞察专家，擅长生成业务洞察和建议。
+    temperature: 0.5
+    max_tokens: 2000
+
+  insight_agent_execute:
+    name: "insight_agent_execute"
+    category: "agent"
+    description: "洞察生成智能体 - 从数据分析结果中提取洞察"
+    system_prompt: |
+      你是一个业务洞察专家，擅长从数据分析结果中提取业务洞察并提供行动建议。
+    temperature: 0.5
+    max_tokens: 3000
+
+  # ========== 内容生成智能体 ==========
+  content_agent:
+    name: "content_agent"
+    category: "agent"
+    description: "内容生成智能体 - 分析内容生成需求"
+    system_prompt: |
+      你是一个内容生成专家，擅长分析内容生成需求。
+    temperature: 0.3
+    max_tokens: 2000
+
+  content_agent_execute:
+    name: "content_agent_execute"
+    category: "agent"
+    description: "内容生成智能体 - 生成结构化内容"
+    system_prompt: |
+      你是一个专业的内容生成专家，擅长生成高质量的结构化内容。
+    temperature: 0.7
+    max_tokens: 4000
+
+  # ========== 格式优化智能体 ==========
+  format_agent:
+    name: "format_agent"
+    category: "agent"
+    description: "格式优化智能体 - 分析格式优化需求"
+    system_prompt: |
+      你是一个格式优化专家，擅长分析格式优化需求。
+    temperature: 0.3
+    max_tokens: 2000
+
+  format_agent_execute:
+    name: "format_agent_execute"
+    category: "agent"
+    description: "格式优化智能体 - 执行格式优化"
+    system_prompt: |
+      你是一个格式优化专家，擅长将内容格式化为指定格式。
+      注意：格式参数会在运行时动态替换。
+    temperature: 0.3
+    max_tokens: 3000
+    dynamic_placeholders:
+      - "target_format"
+
+  # ========== 质量检查智能体 ==========
+  quality_check_agent:
+    name: "quality_check_agent"
+    category: "agent"
+    description: "质量检查智能体 - 分析质量检查需求"
+    system_prompt: |
+      你是一个质量检查专家，擅长分析质量检查需求。
+    temperature: 0.3
+    max_tokens: 2000
+
+  quality_check_agent_execute:
+    name: "quality_check_agent_execute"
+    category: "agent"
+    description: "质量检查智能体 - 执行质量检查"
+    system_prompt: |
+      你是一个专业的质量检查专家，擅长检查内容质量。
+    temperature: 0.3
+    max_tokens: 3000
+
+  # ========== 结果合成智能体 ==========
+  result_synthesis_agent:
+    name: "result_synthesis_agent"
+    category: "agent"
+    description: "结果合成智能体 - 分析结果合成需求"
+    system_prompt: |
+      你是一个结果合成专家，擅长分析结果合成需求。
+    temperature: 0.3
+    max_tokens: 2000
+
+  result_synthesis_agent_execute:
+    name: "result_synthesis_agent_execute"
+    category: "agent"
+    description: "结果合成智能体 - 合成最终结果"
+    system_prompt: |
+      你是一个专业的结果合成专家，擅长协调多个智能体的输出并合成高质量的最终结果。
+    temperature: 0.5
+    max_tokens: 4000
+
+  # ========== 知识库智能体 ==========
+  knowledge_base_agent:
+    name: "knowledge_base_agent"
+    category: "agent"
+    description: "知识库智能体 - 分析查询需求并选择检索策略"
+    system_prompt: |
+      你是一个知识库专家，擅长分析查询需求并选择最佳检索策略。
+    temperature: 0.3
+    max_tokens: 2000
+
+  # ========== 工作流智能体 ==========
+  workflow_agent:
+    name: "workflow_agent"
+    category: "agent"
+    description: "工作流智能体 - 判断任务是否需要工作流执行"
+    system_prompt: |
+      你是一个工作流专家，擅长判断任务是否需要工作流执行。
+    temperature: 0.3
+    max_tokens: 2000
+
+  # ========== MCP工具智能体 ==========
+  mcp_tool_agent_context:
+    name: "mcp_tool_agent_context"
+    category: "agent"
+    description: "MCP工具智能体 - 上下文提取"
+    system_prompt: |
+      你是一个上下文提取专家，擅长从复杂上下文中提取关键信息。
+    temperature: 0.3
+    max_tokens: 2000
+
+  mcp_tool_agent_analysis:
+    name: "mcp_tool_agent_analysis"
+    category: "agent"
+    description: "MCP工具智能体 - 任务分析"
+    system_prompt: |
+      你是一个MCP工具智能体，负责分析任务并选择合适的MCP工具执行。你需要仔细分析任务需求，检查可用工具列表，智能判断是否需要工具以及选择哪个工具。
+    temperature: 0.3
+    max_tokens: 2000
+
+  mcp_tool_agent_output:
+    name: "mcp_tool_agent_output"
+    category: "agent"
+    description: "MCP工具智能体 - 工具输出分析"
+    system_prompt: |
+      你是一个工具输出分析专家，擅长理解工具执行结果。
+    temperature: 0.3
+    max_tokens: 2000
+
+  mcp_tool_agent_format:
+    name: "mcp_tool_agent_format"
+    category: "agent"
+    description: "MCP工具智能体 - 响应格式化"
+    system_prompt: |
+      你是一个响应格式化专家，擅长将技术性的分析结果转换为用户友好的格式。
+    temperature: 0.3
+    max_tokens: 2000
+
+  # ========== SAP OData智能体 ==========
+  sap_odata_agent_classify:
+    name: "sap_odata_agent_classify"
+    category: "agent"
+    description: "SAP OData智能体 - 工具分类"
+    system_prompt: |
+      你是工具分类专家，擅长基于工具的实际功能进行分类。
+    temperature: 0.3
+    max_tokens: 2000
+
+  sap_odata_agent_expert:
+    name: "sap_odata_agent_expert"
+    category: "agent"
+    description: "SAP OData智能体 - SAP专家"
+    system_prompt: |
+      你是SAP OData专家，擅长：
+      1. 理解SAP业务场景和数据模型
+      2. 构建正确的OData查询
+      3. 处理SAP特有的业务逻辑
+      4. 优化查询性能
+      你需要基于实际工具信息进行判断，而不是依赖硬编码的规则。
+    temperature: 0.3
+    max_tokens: 3000
+
+  sap_odata_agent_context:
+    name: "sap_odata_agent_context"
+    category: "agent"
+    description: "SAP OData智能体 - 上下文提取"
+    system_prompt: |
+      你是上下文提取专家，擅长从复杂上下文中提取与工具执行相关的关键信息。
+    temperature: 0.3
+    max_tokens: 2000
+
+  sap_odata_agent_optimize:
+    name: "sap_odata_agent_optimize"
+    category: "agent"
+    description: "SAP OData智能体 - 查询优化"
+    system_prompt: |
+      你是OData查询优化专家。
+    temperature: 0.3
+    max_tokens: 2000
+
+  sap_odata_agent_analyze:
+    name: "sap_odata_agent_analyze"
+    category: "agent"
+    description: "SAP OData智能体 - 数据分析"
+    system_prompt: |
+      你是SAP数据分析专家，擅长从SAP操作结果中提取业务价值。
+    temperature: 0.3
+    max_tokens: 2000
+
+  sap_odata_agent_keywords:
+    name: "sap_odata_agent_keywords"
+    category: "agent"
+    description: "SAP OData智能体 - 关键词提取"
+    system_prompt: |
+      你是SAP关键词提取专家。
+    temperature: 0.3
+    max_tokens: 1000
+
+  sap_odata_agent_strategy:
+    name: "sap_odata_agent_strategy"
+    category: "agent"
+    description: "SAP OData智能体 - 执行策略选择"
+    system_prompt: |
+      你是执行策略专家，擅长根据工具和任务特征选择最佳执行策略。
+    temperature: 0.3
+    max_tokens: 2000
+

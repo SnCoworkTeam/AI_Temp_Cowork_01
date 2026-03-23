@@ -1,0 +1,84 @@
+# 修复shared_libs导入问题 - 最终方案
+# 问题：Python无法识别shared_libs为包
+
+# ============================================
+# 诊断步骤
+# ============================================
+cd /opt/enterprise-ai-platform
+
+# 1. 检查文件权限
+echo "=== File permissions ==="
+ls -la shared_libs/__init__.py
+sudo docker exec enterprise-ai-mcp-gateway ls -la /shared_libs/__init__.py
+
+# 2. 检查Python是否能读取文件
+echo ""
+echo "=== Testing file read ==="
+sudo docker exec enterprise-ai-mcp-gateway python -c "with open('/shared_libs/__init__.py', 'r') as f: print('File readable:', len(f.read()), 'bytes')"
+
+# 3. 检查Python包查找机制
+echo ""
+echo "=== Testing package discovery ==="
+sudo docker exec enterprise-ai-mcp-gateway python << 'EOF'
+import sys
+import os
+
+# 检查路径
+print("sys.path contains /shared_libs:", '/shared_libs' in sys.path)
+print("Directory exists:", os.path.exists('/shared_libs'))
+print("__init__.py exists:", os.path.exists('/shared_libs/__init__.py'))
+print("Is directory:", os.path.isdir('/shared_libs'))
+
+# 尝试直接导入
+try:
+    import importlib
+    # 方法1: 使用importlib
+    spec = importlib.util.find_spec('shared_libs', ['/shared_libs'])
+    print("find_spec result:", spec)
+    if spec:
+        print("Spec location:", spec.origin)
+        print("Spec loader:", spec.loader)
+except Exception as e:
+    print("find_spec failed:", e)
+
+# 方法2: 直接执行__init__.py
+try:
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("shared_libs", "/shared_libs/__init__.py")
+    if spec and spec.loader:
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        print("Direct load SUCCESS")
+        print("Module __file__:", getattr(module, '__file__', 'N/A'))
+    else:
+        print("Direct load FAILED: spec is None or loader is None")
+except Exception as e:
+    import traceback
+    print("Direct load FAILED:")
+    traceback.print_exc()
+EOF
+
+# ============================================
+# 解决方案：修改PYTHONPATH或使用site-packages
+# ============================================
+# 如果上述诊断显示问题，尝试以下方案：
+
+# 方案1: 确保PYTHONPATH正确设置（在docker-compose.yml中已设置）
+# 方案2: 创建符号链接到site-packages
+sudo docker exec enterprise-ai-mcp-gateway bash -c "ln -sf /shared_libs /usr/local/lib/python3.11/site-packages/shared_libs 2>&1 || echo 'Link exists or failed'"
+
+# 方案3: 修改__init__.py，确保它是最简版本
+cat > shared_libs/__init__.py << 'EOF'
+"""共享库包"""
+__version__ = "1.0.0"
+__all__ = []
+EOF
+
+# 测试最简版本
+echo ""
+echo "=== Testing minimal __init__.py ==="
+sudo docker exec enterprise-ai-mcp-gateway python -c 'import sys; sys.path.insert(0, "/shared_libs"); import shared_libs; print("SUCCESS:", shared_libs.__version__)'
+
+# 如果成功，逐步添加内容
+# 如果失败，问题可能在Python的包查找机制
+

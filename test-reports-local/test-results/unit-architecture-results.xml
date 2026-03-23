@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="8" time="3.615" timestamp="2025-12-03T19:00:16.715884+08:00" hostname="VM-0-10-ubuntu"><testcase classname="tests.test-architecture.test_imports.TestImports" name="test_no_circular_imports" time="0.002"><failure message="TypeError: validate_imports() missing 1 required positional argument: 'file_path'">tests/test-architecture/test_imports.py:23: in test_no_circular_imports
+    valid, issues = guard.validate_imports()
+E   TypeError: validate_imports() missing 1 required positional argument: 'file_path'</failure></testcase><testcase classname="tests.test-architecture.test_imports.TestImports" name="test_service_independence" time="0.587" /><testcase classname="tests.test-architecture.test_imports.TestImports" name="test_shared_libs_usage" time="0.002" /><testcase classname="tests.test-architecture.test_project_structure.TestProjectStructure" name="test_project_root_exists" time="0.001" /><testcase classname="tests.test-architecture.test_project_structure.TestProjectStructure" name="test_required_directories_exist" time="0.001"><failure message="AssertionError: 目录 shared-libs 不存在&#10;assert False&#10; +  where False = exists()&#10; +    where exists = PosixPath('/opt/enterprise-ai-platform/shared-libs').exists">tests/test-architecture/test_project_structure.py:41: in test_required_directories_exist
+    assert dir_path.exists(), f"目录 {dir_name} 不存在"
+E   AssertionError: 目录 shared-libs 不存在
+E   assert False
+E    +  where False = exists()
+E    +    where exists = PosixPath('/opt/enterprise-ai-platform/shared-libs').exists</failure></testcase><testcase classname="tests.test-architecture.test_project_structure.TestProjectStructure" name="test_architecture_compliance" time="0.001"><failure message="ValueError: too many values to unpack (expected 2)">tests/test-architecture/test_project_structure.py:47: in test_architecture_compliance
+    valid, issues = guard.validate_project_structure()
+E   ValueError: too many values to unpack (expected 2)</failure></testcase><testcase classname="tests.test-architecture.test_project_structure.TestProjectStructure" name="test_service_structure" time="0.001" /><testcase classname="tests.test-architecture.test_project_structure.TestProjectStructure" name="test_shared_libs_structure" time="0.001"><failure message="AssertionError: assert False&#10; +  where False = exists()&#10; +    where exists = PosixPath('/opt/enterprise-ai-platform/shared-libs').exists">tests/test-architecture/test_project_structure.py:73: in test_shared_libs_structure
+    assert shared_libs_path.exists()
+E   AssertionError: assert False
+E    +  where False = exists()
+E    +    where exists = PosixPath('/opt/enterprise-ai-platform/shared-libs').exists</failure></testcase></testsuite></testsuites>

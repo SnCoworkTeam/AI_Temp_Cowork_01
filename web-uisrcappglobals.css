@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* react-data-grid基础样式 - 手动添加，因为6.x版本可能没有单独的CSS文件 */
+.rdg {
+  --rdg-background-color: #ffffff;
+  --rdg-header-background-color: #f9fafb;
+  --rdg-row-hover-background-color: #f3f4f6;
+  --rdg-row-selected-background-color: #dbeafe;
+  --rdg-border-color: #e5e7eb;
+  --rdg-summary-border-color: #e5e7eb;
+  --rdg-font-size: 14px;
+  border: 1px solid var(--rdg-border-color);
+}
+
+.rdg-cell {
+  border-right: 1px solid var(--rdg-border-color);
+  border-bottom: 1px solid var(--rdg-border-color);
+  padding: 8px;
+}
+
+.rdg-header-row {
+  background-color: var(--rdg-header-background-color);
+  font-weight: 600;
+}
+
+.rdg-row:hover {
+  background-color: var(--rdg-row-hover-background-color);
+}
+
+.rdg-row-selected {
+  background-color: var(--rdg-row-selected-background-color);
+}
+
+/* 自定义react-data-grid样式 */
+.rdg-light {
+  --rdg-background-color: #ffffff;
+  --rdg-header-background-color: #f9fafb;
+  --rdg-row-hover-background-color: #f3f4f6;
+  --rdg-row-selected-background-color: #dbeafe;
+  --rdg-border-color: #e5e7eb;
+  --rdg-summary-border-color: #e5e7eb;
+  --rdg-font-size: 14px;
+}
+
+.rdg-cell {
+  border-right: 1px solid var(--rdg-border-color);
+  border-bottom: 1px solid var(--rdg-border-color);
+}
+
+.rdg-header-row {
+  background-color: var(--rdg-header-background-color);
+  font-weight: 600;
+}
+
+.rdg-row:hover {
+  background-color: var(--rdg-row-hover-background-color);
+}
+
+.rdg-row-selected {
+  background-color: var(--rdg-row-selected-background-color);
+}
+

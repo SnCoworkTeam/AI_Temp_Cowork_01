@@ -1,0 +1,56 @@
+# 开发环境Dockerfile - 支持热重载和调试
+ARG PYTHON_VERSION=3.11
+
+# 基础阶段
+FROM python:${PYTHON_VERSION}-slim-bookworm as base
+
+# 配置 Debian 镜像源（使用清华镜像）
+RUN sed -i 's|http://deb.debian.org|https://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || \
+    sed -i 's|http://deb.debian.org|https://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list 2>/dev/null || true
+
+WORKDIR /app
+
+# 设置环境变量
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# 依赖安装阶段
+FROM base as deps
+
+# 升级pip
+RUN pip install --upgrade pip setuptools wheel
+
+# 配置pip使用国内镜像源（清华镜像，更稳定）
+# 设置环境变量禁用SSL验证（仅用于开发环境，解决VPN/代理SSL问题）
+ENV PIP_TRUSTED_HOST="pypi.tuna.tsinghua.edu.cn pypi.org files.pythonhosted.org"
+ENV PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple"
+ENV CURL_CA_BUNDLE=""
+ENV REQUESTS_CA_BUNDLE=""
+RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple && \
+    pip config set global.timeout 300 && \
+    pip config set global.retries 5 && \
+    pip config set global.trusted-host "pypi.tuna.tsinghua.edu.cn pypi.org files.pythonhosted.org"
+
+# 复制依赖文件
+COPY requirements.txt .
+
+# 安装依赖
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 最终阶段
+FROM deps as final
+
+# 设置环境变量
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONPATH=/app
+
+# 暴露端口
+EXPOSE 8009
+
+# 启动命令（开发模式，支持热重载）
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8009", "--reload", "--reload-dir", "/app/src"]
+

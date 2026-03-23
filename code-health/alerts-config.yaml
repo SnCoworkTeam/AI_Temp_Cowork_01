@@ -1,0 +1,143 @@
+# 代码健康度告警配置
+
+version: "1.0.0"
+
+# 告警阈值配置
+thresholds:
+  # 质量指标阈值
+  quality:
+    # 代码覆盖率
+    coverage:
+      critical: 60  # 低于60%为Critical
+      high: 70      # 低于70%为High
+      medium: 80   # 低于80%为Medium
+      target: 80   # 目标值
+    
+    # 代码复杂度
+    complexity:
+      average:
+        critical: 15  # 平均复杂度>15为Critical
+        high: 12      # 平均复杂度>12为High
+        medium: 10    # 平均复杂度>10为Medium
+        target: 8     # 目标值
+      max:
+        critical: 25  # 最大复杂度>25为Critical
+        high: 20      # 最大复杂度>20为High
+        medium: 15    # 最大复杂度>15为Medium
+        target: 10    # 目标值
+    
+    # 技术债务
+    debt:
+      critical: 400  # 债务>400点为Critical
+      high: 300      # 债务>300点为High
+      medium: 200    # 债务>200点为Medium
+      target: 100    # 目标值
+    
+    # 缺陷密度
+    bug_density:
+      critical: 5.0  # 缺陷密度>5.0为Critical
+      high: 3.0      # 缺陷密度>3.0为High
+      medium: 2.0    # 缺陷密度>2.0为Medium
+      target: 1.0    # 目标值
+  
+  # 性能指标阈值
+  performance:
+    # 构建时间（秒）
+    build_time:
+      critical: 1800  # >30分钟为Critical
+      high: 1200      # >20分钟为High
+      medium: 600     # >10分钟为Medium
+      target: 300     # 目标值（5分钟）
+    
+    # 测试时间（秒）
+    test_time:
+      critical: 1800  # >30分钟为Critical
+      high: 1200      # >20分钟为High
+      medium: 600     # >10分钟为Medium
+      target: 300     # 目标值（5分钟）
+    
+    # 启动时间（秒）
+    startup_time:
+      critical: 120   # >2分钟为Critical
+      high: 60        # >1分钟为High
+      medium: 30      # >30秒为Medium
+      target: 15      # 目标值（15秒）
+    
+    # 内存使用（MB）
+    memory_usage:
+      critical: 2048  # >2GB为Critical
+      high: 1024      # >1GB为High
+      medium: 512     # >512MB为Medium
+      target: 256     # 目标值（256MB）
+
+# 告警通知配置
+notifications:
+  # 告警级别配置
+  levels:
+    critical:
+      enabled: true
+      channels: ["email", "slack", "webhook"]
+      immediate: true
+    
+    high:
+      enabled: true
+      channels: ["slack", "webhook"]
+      immediate: false
+    
+    medium:
+      enabled: true
+      channels: ["webhook"]
+      immediate: false
+    
+    low:
+      enabled: false
+      channels: []
+  
+  # 通知渠道配置
+  channels:
+    email:
+      enabled: false
+      recipients: []
+    
+    slack:
+      enabled: false
+      webhook_url: "${SLACK_WEBHOOK_URL}"
+    
+    webhook:
+      enabled: false
+      url: "${WEBHOOK_URL}"
+
+# 告警抑制配置
+suppression:
+  # 抑制时间（分钟）
+  duration: 60
+  
+  # 抑制规则
+  rules:
+    - condition: "coverage < 80 AND coverage_trend = improving"
+      suppress: true
+      reason: "覆盖率正在改善中"
+    
+    - condition: "debt < 300 AND debt_trend = declining"
+      suppress: true
+      reason: "技术债务正在减少"
+
+# 告警聚合配置
+aggregation:
+  # 聚合时间窗口（分钟）
+  window: 30
+  
+  # 聚合规则
+  rules:
+    - type: "same_metric"
+      group_by: ["metric_type", "level"]
+      max_alerts: 5
+
+
+
+
+
+
+
+
+

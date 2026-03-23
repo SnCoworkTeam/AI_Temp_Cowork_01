@@ -1,0 +1,47 @@
+# 修复shared_libs导入 - 使用父目录路径
+# Python包查找需要父目录在sys.path中
+
+cd /opt/enterprise-ai-platform
+
+# 方案：将/shared_libs的父目录（即/）添加到sys.path，或者直接使用/shared_libs作为包路径
+
+# 1. 检查当前PYTHONPATH设置
+echo "=== Current PYTHONPATH ==="
+sudo docker exec enterprise-ai-mcp-gateway env | grep PYTHONPATH
+
+# 2. 测试：将/添加到sys.path（shared_libs的父目录）
+echo ""
+echo "=== Testing with parent directory in path ==="
+sudo docker exec enterprise-ai-mcp-gateway python << 'EOF'
+import sys
+# 方法1: 添加父目录
+if '/' not in sys.path:
+    sys.path.insert(0, '/')
+print("sys.path:", sys.path[:3])
+try:
+    import shared_libs
+    print("SUCCESS: shared_libs imported with parent dir")
+except Exception as e:
+    print(f"FAILED with parent dir: {e}")
+
+# 方法2: 直接使用/shared_libs
+sys.path = ['/shared_libs'] + sys.path
+print("\nTrying with /shared_libs as first path...")
+try:
+    import shared_libs
+    print("SUCCESS: shared_libs imported")
+except Exception as e:
+    print(f"FAILED: {e}")
+    import traceback
+    traceback.print_exc()
+EOF
+
+# 3. 如果上述方法失败，检查是否是__init__.py的问题
+echo ""
+echo "=== Checking __init__.py syntax ==="
+sudo docker exec enterprise-ai-mcp-gateway python -m py_compile /shared_libs/__init__.py && echo "Syntax OK" || echo "Syntax ERROR"
+
+# 4. 最终方案：修改docker-compose.yml中的PYTHONPATH
+# 将 PYTHONPATH=/app:/shared_libs:/database 改为 PYTHONPATH=/app:/:/database
+# 这样Python会在根目录查找包
+

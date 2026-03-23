@@ -1,0 +1,40 @@
+# 快速检查并启动服务
+# 复制执行
+
+cd /opt/enterprise-ai-platform
+
+# 1. 检查当前状态
+echo "=== Current containers ==="
+sudo docker ps -a
+
+# 2. 启动postgres
+echo "=== Starting postgres ==="
+sudo docker start enterprise-ai-postgres
+sleep 15
+
+# 3. 启动redis
+echo "=== Starting redis ==="
+sudo docker compose up -d redis
+sleep 5
+
+# 4. 检查mcp-gateway是否存在
+echo "=== Checking mcp-gateway ==="
+if sudo docker ps -a | grep -q mcp-gateway; then
+    echo "mcp-gateway container exists, starting it..."
+    sudo docker start enterprise-ai-mcp-gateway
+else
+    echo "mcp-gateway container does not exist, creating it..."
+    sudo docker compose up -d mcp-gateway
+fi
+
+# 5. 等待启动
+sleep 15
+
+# 6. 检查所有服务
+echo "=== All services status ==="
+sudo docker ps
+
+# 7. 测试mcp-gateway
+echo "=== Testing mcp-gateway ==="
+curl http://localhost:8001/api/health
+

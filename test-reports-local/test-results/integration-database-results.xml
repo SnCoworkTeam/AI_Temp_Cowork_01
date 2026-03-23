@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="3" failures="1" skipped="0" tests="4" time="9.163" timestamp="2025-12-03T18:58:19.611324+08:00" hostname="VM-0-10-ubuntu"><testcase classname="tests.test-integration.test_database_integration.TestDatabaseIntegration" name="test_database_connection" time="1.318"><error message="failed on setup with &quot;sqlalchemy.exc.CompileError: (in table 'users', column 'id'): Compiler &lt;sqlalchemy.dialects.sqlite.base.SQLiteTypeCompiler object at 0x7f5f81a245e0&gt; can't render element of type UUID&quot;">/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/visitors.py:139: in _compiler_dispatch
+    meth = getter(visitor)
+E   AttributeError: 'SQLiteTypeCompiler' object has no attribute 'visit_UUID'
+
+The above exception was the direct cause of the following exception:
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/compiler.py:6487: in visit_create_table
+    processed = self.process(
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/compiler.py:912: in process
+    return obj._compiler_dispatch(self, **kwargs)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/visitors.py:143: in _compiler_dispatch
+    return meth(self, **kw)  # type: ignore  # noqa: E501
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/compiler.py:6518: in visit_create_column
+    text = self.get_column_specification(column, first_pk=first_pk)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/dialects/sqlite/base.py:1534: in get_column_specification
+    coltype = self.dialect.type_compiler_instance.process(
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/compiler.py:957: in process
+    return type_._compiler_dispatch(self, **kw)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/visitors.py:141: in _compiler_dispatch
+    return visitor.visit_unsupported_compilation(self, err, **kw)  # type: ignore  # noqa: E501
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/compiler.py:962: in visit_unsupported_compilation
+    raise exc.UnsupportedCompilationError(self, element) from err
+E   sqlalchemy.exc.UnsupportedCompilationError: Compiler &lt;sqlalchemy.dialects.sqlite.base.SQLiteTypeCompiler object at 0x7f5f81a245e0&gt; can't render element of type UUID (Background on this error at: https://sqlalche.me/e/20/l7de)
+
+The above exception was the direct cause of the following exception:
+tests/conftest.py:58: in db_session
+    Base.metadata.create_all(engine)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/schema.py:5828: in create_all
+    bind._run_ddl_visitor(
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/engine/base.py:3243: in _run_ddl_visitor
+    conn._run_ddl_visitor(visitorcallable, element, **kwargs)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/engine/base.py:2447: in _run_ddl_visitor
+    visitorcallable(self.dialect, self, **kwargs).traverse_single(element)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/visitors.py:671: in traverse_single
+    return meth(obj, **kw)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/ddl.py:919: in visit_metadata
+    self.traverse_single(
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/visitors.py:671: in traverse_single
+    return meth(obj, **kw)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/ddl.py:952: in visit_table
+    CreateTable(
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/ddl.py:315: in _invoke_with
+    return bind.execute(self)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/engine/base.py:1416: in execute
+    return meth(
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/ddl.py:181: in _execute_on_connection
+    return connection._execute_ddl(
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/engine/base.py:1525: in _execute_ddl
+    compiled = ddl.compile(
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/elements.py:308: in compile
+    return self._compiler(dialect, **kw)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/ddl.py:69: in _compiler
+    return dialect.ddl_compiler(dialect, self, **kw)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/compiler.py:867: in __init__
+    self.string = self.process(self.statement, **compile_kwargs)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/compiler.py:912: in process
+    return obj._compiler_dispatch(self, **kwargs)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/visitors.py:143: in _compiler_dispatch
+    return meth(self, **kw)  # type: ignore  # noqa: E501
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/compiler.py:6497: in visit_create_table
+    raise exc.CompileError(
+E   sqlalchemy.exc.CompileError: (in table 'users', column 'id'): Compiler &lt;sqlalchemy.dialects.sqlite.base.SQLiteTypeCompiler object at 0x7f5f81a245e0&gt; can't render element of type UUID</error></testcase><testcase classname="tests.test-integration.test_database_integration.TestDatabaseIntegration" name="test_user_model_operations" time="0.007"><error message="failed on setup with &quot;sqlalchemy.exc.CompileError: (in table 'users', column 'id'): Compiler &lt;sqlalchemy.dialects.sqlite.base.SQLiteTypeCompiler object at 0x7f5f80681910&gt; can't render element of type UUID&quot;">/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/visitors.py:139: in _compiler_dispatch
+    meth = getter(visitor)
+E   AttributeError: 'SQLiteTypeCompiler' object has no attribute 'visit_UUID'
+
+The above exception was the direct cause of the following exception:
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/compiler.py:6487: in visit_create_table
+    processed = self.process(
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/compiler.py:912: in process
+    return obj._compiler_dispatch(self, **kwargs)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/visitors.py:143: in _compiler_dispatch
+    return meth(self, **kw)  # type: ignore  # noqa: E501
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/compiler.py:6518: in visit_create_column
+    text = self.get_column_specification(column, first_pk=first_pk)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/dialects/sqlite/base.py:1534: in get_column_specification
+    coltype = self.dialect.type_compiler_instance.process(
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/compiler.py:957: in process
+    return type_._compiler_dispatch(self, **kw)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/visitors.py:141: in _compiler_dispatch
+    return visitor.visit_unsupported_compilation(self, err, **kw)  # type: ignore  # noqa: E501
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/compiler.py:962: in visit_unsupported_compilation
+    raise exc.UnsupportedCompilationError(self, element) from err
+E   sqlalchemy.exc.UnsupportedCompilationError: Compiler &lt;sqlalchemy.dialects.sqlite.base.SQLiteTypeCompiler object at 0x7f5f80681910&gt; can't render element of type UUID (Background on this error at: https://sqlalche.me/e/20/l7de)
+
+The above exception was the direct cause of the following exception:
+tests/conftest.py:58: in db_session
+    Base.metadata.create_all(engine)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/schema.py:5828: in create_all
+    bind._run_ddl_visitor(
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/engine/base.py:3243: in _run_ddl_visitor
+    conn._run_ddl_visitor(visitorcallable, element, **kwargs)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/engine/base.py:2447: in _run_ddl_visitor
+    visitorcallable(self.dialect, self, **kwargs).traverse_single(element)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/visitors.py:671: in traverse_single
+    return meth(obj, **kw)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/ddl.py:919: in visit_metadata
+    self.traverse_single(
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/visitors.py:671: in traverse_single
+    return meth(obj, **kw)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/ddl.py:952: in visit_table
+    CreateTable(
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/ddl.py:315: in _invoke_with
+    return bind.execute(self)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/engine/base.py:1416: in execute
+    return meth(
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/ddl.py:181: in _execute_on_connection
+    return connection._execute_ddl(
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/engine/base.py:1525: in _execute_ddl
+    compiled = ddl.compile(
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/elements.py:308: in compile
+    return self._compiler(dialect, **kw)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/ddl.py:69: in _compiler
+    return dialect.ddl_compiler(dialect, self, **kw)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/compiler.py:867: in __init__
+    self.string = self.process(self.statement, **compile_kwargs)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/compiler.py:912: in process
+    return obj._compiler_dispatch(self, **kwargs)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/visitors.py:143: in _compiler_dispatch
+    return meth(self, **kw)  # type: ignore  # noqa: E501
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/compiler.py:6497: in visit_create_table
+    raise exc.CompileError(
+E   sqlalchemy.exc.CompileError: (in table 'users', column 'id'): Compiler &lt;sqlalchemy.dialects.sqlite.base.SQLiteTypeCompiler object at 0x7f5f80681910&gt; can't render element of type UUID</error></testcase><testcase classname="tests.test-integration.test_database_integration.TestDatabaseIntegration" name="test_workflow_model_operations" time="0.007"><error message="failed on setup with &quot;sqlalchemy.exc.CompileError: (in table 'users', column 'id'): Compiler &lt;sqlalchemy.dialects.sqlite.base.SQLiteTypeCompiler object at 0x7f5f80880c70&gt; can't render element of type UUID&quot;">/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/visitors.py:139: in _compiler_dispatch
+    meth = getter(visitor)
+E   AttributeError: 'SQLiteTypeCompiler' object has no attribute 'visit_UUID'
+
+The above exception was the direct cause of the following exception:
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/compiler.py:6487: in visit_create_table
+    processed = self.process(
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/compiler.py:912: in process
+    return obj._compiler_dispatch(self, **kwargs)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/visitors.py:143: in _compiler_dispatch
+    return meth(self, **kw)  # type: ignore  # noqa: E501
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/compiler.py:6518: in visit_create_column
+    text = self.get_column_specification(column, first_pk=first_pk)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/dialects/sqlite/base.py:1534: in get_column_specification
+    coltype = self.dialect.type_compiler_instance.process(
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/compiler.py:957: in process
+    return type_._compiler_dispatch(self, **kw)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/visitors.py:141: in _compiler_dispatch
+    return visitor.visit_unsupported_compilation(self, err, **kw)  # type: ignore  # noqa: E501
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/compiler.py:962: in visit_unsupported_compilation
+    raise exc.UnsupportedCompilationError(self, element) from err
+E   sqlalchemy.exc.UnsupportedCompilationError: Compiler &lt;sqlalchemy.dialects.sqlite.base.SQLiteTypeCompiler object at 0x7f5f80880c70&gt; can't render element of type UUID (Background on this error at: https://sqlalche.me/e/20/l7de)
+
+The above exception was the direct cause of the following exception:
+tests/conftest.py:58: in db_session
+    Base.metadata.create_all(engine)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/schema.py:5828: in create_all
+    bind._run_ddl_visitor(
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/engine/base.py:3243: in _run_ddl_visitor
+    conn._run_ddl_visitor(visitorcallable, element, **kwargs)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/engine/base.py:2447: in _run_ddl_visitor
+    visitorcallable(self.dialect, self, **kwargs).traverse_single(element)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/visitors.py:671: in traverse_single
+    return meth(obj, **kw)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/ddl.py:919: in visit_metadata
+    self.traverse_single(
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/visitors.py:671: in traverse_single
+    return meth(obj, **kw)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/ddl.py:952: in visit_table
+    CreateTable(
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/ddl.py:315: in _invoke_with
+    return bind.execute(self)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/engine/base.py:1416: in execute
+    return meth(
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/ddl.py:181: in _execute_on_connection
+    return connection._execute_ddl(
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/engine/base.py:1525: in _execute_ddl
+    compiled = ddl.compile(
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/elements.py:308: in compile
+    return self._compiler(dialect, **kw)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/ddl.py:69: in _compiler
+    return dialect.ddl_compiler(dialect, self, **kw)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/compiler.py:867: in __init__
+    self.string = self.process(self.statement, **compile_kwargs)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/compiler.py:912: in process
+    return obj._compiler_dispatch(self, **kwargs)
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/visitors.py:143: in _compiler_dispatch
+    return meth(self, **kw)  # type: ignore  # noqa: E501
+/home/ubuntu/.local/lib/python3.8/site-packages/sqlalchemy/sql/compiler.py:6497: in visit_create_table
+    raise exc.CompileError(
+E   sqlalchemy.exc.CompileError: (in table 'users', column 'id'): Compiler &lt;sqlalchemy.dialects.sqlite.base.SQLiteTypeCompiler object at 0x7f5f80880c70&gt; can't render element of type UUID</error></testcase><testcase classname="tests.test-integration.test_database_integration.TestDatabaseIntegration" name="test_async_database_operations" time="0.003"><failure message="AttributeError: 'async_generator' object has no attribute 'execute'">tests/test-integration/test_database_integration.py:83: in test_async_database_operations
+    result = await async_db_session.execute(text("SELECT 1"))
+E   AttributeError: 'async_generator' object has no attribute 'execute'</failure></testcase></testsuite></testsuites>

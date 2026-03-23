@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="4.223" timestamp="2025-12-03T18:58:29.179035+08:00" hostname="VM-0-10-ubuntu"><testcase classname="tests.test-integration.test_external_services.TestExternalServices" name="test_llm_api_integration" time="0.078" /><testcase classname="tests.test-integration.test_external_services.TestExternalServices" name="test_vector_store_integration" time="0.001"><failure message="ModuleNotFoundError: No module named 'chromadb'">tests/test-integration/test_external_services.py:38: in test_vector_store_integration
+    with patch('chromadb.Client') as mock_chroma:
+/usr/lib/python3.8/unittest/mock.py:1377: in __enter__
+    self.target = self.getter()
+/usr/lib/python3.8/unittest/mock.py:1552: in &lt;lambda&gt;
+    getter = lambda: _importer(target)
+/usr/lib/python3.8/unittest/mock.py:1224: in _importer
+    thing = __import__(import_path)
+E   ModuleNotFoundError: No module named 'chromadb'</failure></testcase></testsuite></testsuites>

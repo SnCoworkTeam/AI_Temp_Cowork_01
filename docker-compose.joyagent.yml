@@ -1,0 +1,159 @@
+# Docker Compose configuration for JoyAgent Adapter Service
+# This file extends the main docker-compose.yml
+
+services:
+  # JoyAgent Adapter Service - AI Agent Coordinator
+  joyagent-adapter:
+    build:
+      context: .
+      dockerfile: joyagent-adapter/Dockerfile
+      args:
+        - PYTHON_VERSION=${PYTHON_VERSION:-3.11}
+    container_name: enterprise-ai-joyagent-adapter
+    ports:
+      - "${JOYAGENT_ADAPTER_PORT:-8007}:8007"  # Adapter Service API
+      - "8080:8080"  # JoyAgent Backend API (internal)
+      - "3000:3000"  # JoyAgent Frontend UI (optional, for demo)
+      - "1601:1601"  # JoyAgent Python Client (internal)
+    environment:
+      # Service Configuration
+      - JOYAGENT_ADAPTER_SERVICE_HOST=0.0.0.0
+      - JOYAGENT_ADAPTER_SERVICE_PORT=8007
+      - JOYAGENT_ADAPTER_DEBUG=${DEBUG:-false}
+      - JOYAGENT_ADAPTER_LOG_LEVEL=${LOG_LEVEL:-info}
+
+      # JoyAgent-JDGenie Configuration
+      - JOYAGENT_ADAPTER_JOYAGENT_HOST=localhost
+      - JOYAGENT_ADAPTER_JOYAGENT_PORT=8080
+      - JOYAGENT_ADAPTER_JOYAGENT_UI_PORT=3000
+      - JOYAGENT_ADAPTER_JOYAGENT_CLIENT_PORT=1601
+      - JOYAGENT_ADAPTER_JOYAGENT_API_TIMEOUT=300
+
+      # Whether to start frontend (for development/demo)
+      - JOYAGENT_START_FRONTEND=${JOYAGENT_START_FRONTEND:-false}
+
+      # Database Configuration
+      - JOYAGENT_ADAPTER_DB_HOST=postgres
+      - JOYAGENT_ADAPTER_DB_PORT=5432
+      - JOYAGENT_ADAPTER_DB_USER=${DB_USER:-postgres}
+      - JOYAGENT_ADAPTER_DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - JOYAGENT_ADAPTER_DB_NAME=${DB_NAME:-enterprise_ai_platform}
+
+      # Redis Configuration
+      - JOYAGENT_ADAPTER_REDIS_HOST=redis
+      - JOYAGENT_ADAPTER_REDIS_PORT=6379
+      - JOYAGENT_ADAPTER_REDIS_DB=0
+
+      # Consul Configuration
+      - JOYAGENT_ADAPTER_CONSUL_HOST=registry-service
+      - JOYAGENT_ADAPTER_CONSUL_PORT=8500
+
+      # Platform Integration URLs
+      - JOYAGENT_ADAPTER_MCP_GATEWAY_URL=http://mcp-gateway:8001
+      - JOYAGENT_ADAPTER_WORKFLOW_ENGINE_URL=http://workflow-engine:8002
+      - JOYAGENT_ADAPTER_AUTH_SERVICE_URL=http://auth-service:8003
+      - JOYAGENT_ADAPTER_KNOWLEDGE_BASE_URL=http://knowledge-base:8004
+      - JOYAGENT_ADAPTER_METADATA_SERVICE_URL=http://metadata-service:8005
+      - JOYAGENT_ADAPTER_API_GATEWAY_URL=http://api-gateway:8080
+
+      # AI Configuration
+      - JOYAGENT_ADAPTER_LLM_MODEL=${LLM_MODEL:-deepseek-chat}
+      - JOYAGENT_ADAPTER_LLM_BASE_URL=${LLM_BASE_URL:-https://api.deepseek.com}
+      - JOYAGENT_ADAPTER_OPENAI_API_KEY=${OPENAI_API_KEY}
+      # Pass LLM config to JoyAgent services
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://api.deepseek.com}
+      - LLM_MODEL=${LLM_MODEL:-deepseek-chat}
+
+      # Task Configuration
+      - JOYAGENT_ADAPTER_MAX_CONCURRENT_TASKS=10
+      - JOYAGENT_ADAPTER_TASK_TIMEOUT=600
+      - JOYAGENT_ADAPTER_TASK_RETRY_COUNT=3
+      - JOYAGENT_ADAPTER_TASK_RETRY_DELAY=5
+
+      # Context Management
+      - JOYAGENT_ADAPTER_CONTEXT_MAX_SIZE=100
+      - JOYAGENT_ADAPTER_CONTEXT_TTL=3600
+
+      # Security
+      - JOYAGENT_ADAPTER_JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-jwt-secret-key}
+      - JOYAGENT_ADAPTER_JWT_ALGORITHM=HS256
+      - JOYAGENT_ADAPTER_JWT_EXPIRE_MINUTES=30
+
+      # Performance
+      - JOYAGENT_ADAPTER_WORKER_PROCESSES=1
+      - JOYAGENT_ADAPTER_MAX_REQUEST_SIZE=104857600
+
+      # Monitoring
+      - JOYAGENT_ADAPTER_ENABLE_METRICS=true
+      - JOYAGENT_ADAPTER_METRICS_PORT=9090
+
+      # Python环境配置
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+
+    env_file:
+      - .env
+
+    volumes:
+      # Source code hot reload (development)
+      - ./joyagent-adapter/src:/app/src:cached
+      - ./joyagent-jdgenie:/app/joyagent-jdgenie:cached
+
+      # Shared libraries
+      - ./shared_libs:/app/shared_libs:cached
+
+      # Data persistence
+      - joyagent_data:/data/joyagent-adapter
+      - joyagent_tool_data:/data/genie-tool
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      registry-service:
+        condition: service_started
+      mcp-gateway:
+        condition: service_started
+      workflow-engine:
+        condition: service_started
+      auth-service:
+        condition: service_started
+      knowledge-base:
+        condition: service_started
+      metadata-service:
+        condition: service_started
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8007/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 120s  # JoyAgent takes longer to start (Java + Python)
+      retries: 3
+
+    networks:
+      - enterprise-ai-network
+
+    restart: unless-stopped
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4096M
+        reservations:
+          cpus: '0.5'
+          memory: 1024M
+
+# Volumes for JoyAgent data persistence
+volumes:
+  joyagent_data:
+    driver: local
+  joyagent_tool_data:
+    driver: local
+
+networks:
+  enterprise-ai-network:
+    external: true

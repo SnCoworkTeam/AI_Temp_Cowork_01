@@ -1,0 +1,61 @@
+# Docker Compose 日志配置覆盖示例
+# 如果遇到日志解析错误，可以创建 docker-compose.override.yml 文件并添加以下配置
+
+version: '3.8'
+
+services:
+  # 为所有服务配置日志驱动
+  memory-service:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=memory-service"
+        # 禁用 JSON 解析，使用原始文本
+        tag: "{{.Name}}"
+
+  # 如果其他服务也有问题，可以类似配置
+  # agent-service:
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

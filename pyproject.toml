@@ -1,0 +1,86 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "enterprise-ai-platform"
+version = "1.0.0"
+description = "企业AI平台 - 微服务架构的智能企业应用平台"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    {name = "Enterprise AI Platform Team", email = "team@enterprise-ai-platform.com"}
+]
+keywords = ["ai", "enterprise", "microservices", "workflow", "metadata"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourorg/enterprise-ai-platform"
+Documentation = "https://docs.enterprise-ai-platform.com"
+Repository = "https://github.com/yourorg/enterprise-ai-platform"
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = [
+    "tests*",
+    "test*",
+    "docs*",
+    "*.tests",
+    "*.test",
+    "web-ui*",
+    "node_modules*",
+    "backups*",
+    ".git*",
+    ".cursor*",
+]
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | web-ui
+  | node_modules
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+skip = ["web-ui", "node_modules", ".venv", "build", "dist"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "web-ui.*",
+    "node_modules.*",
+]
+ignore_errors = true
+
+
+
+

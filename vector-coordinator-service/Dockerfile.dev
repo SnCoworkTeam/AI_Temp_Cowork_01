@@ -1,0 +1,55 @@
+# 开发环境
+FROM python:3.11-slim-bookworm
+
+WORKDIR /app
+
+# 使用国内镜像源加速（阿里云镜像，更稳定）
+RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
+        sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources; \
+    else \
+        echo "deb https://mirrors.aliyun.com/debian/ trixie main" > /etc/apt/sources.list && \
+        echo "deb https://mirrors.aliyun.com/debian/ trixie-updates main" >> /etc/apt/sources.list && \
+        echo "deb https://mirrors.aliyun.com/debian-security trixie-security main" >> /etc/apt/sources.list; \
+    fi
+
+# 安装系统依赖（增加重试机制）
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl \
+    gcc \
+    || (sleep 5 && apt-get update && apt-get install -y --no-install-recommends --fix-missing curl gcc) && \
+    rm -rf /var/lib/apt/lists/*
+
+# 配置pip（增加超时时间和重试次数，使用国内镜像加速）
+RUN pip install --upgrade pip && \
+    pip config set global.timeout 600 && \
+    pip config set global.retries 10 && \
+    pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+
+# 先安装 CPU 版本的 torch，避免下载 CUDA 相关包（88MB+）
+# 这样 sentence-transformers 就不会再安装 CUDA 版本的 torch
+RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+# 复制依赖文件
+COPY vector-coordinator-service/requirements.txt .
+COPY shared_libs/requirements.txt ./shared_libs-requirements.txt
+
+# 安装Python依赖（torch 已安装，sentence-transformers 会使用已安装的 torch）
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r shared_libs-requirements.txt || true
+
+# 复制应用代码
+COPY vector-coordinator-service/src ./src
+COPY shared_libs ./shared_libs
+
+# 设置环境变量
+ENV PYTHONPATH=/app:/app/shared_libs
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# 暴露端口
+EXPOSE 8020
+
+# 启动命令（开发模式，支持热重载）
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8020", "--reload", "--reload-dir", "/app/src"]
+

@@ -1,0 +1,11 @@
+{
+  "name": "@enterprise-ai/prettier-config",
+  "version": "1.0.0",
+  "description": "统一Prettier配置包",
+  "main": "index.js",
+  "keywords": [
+    "prettier",
+    "prettier-config"
+  ]
+}
+

@@ -1,0 +1,489 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn2:definitions 
+    xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL"
+    xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+    xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+    xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+    xmlns:lumina="http://luminaos.ai/schema/bpmn-extension"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    id="ProcureToPayProcess"
+    targetNamespace="http://luminaos.ai/bpmn">
+    
+    <!-- 采购到付款流程定义 -->
+    <bpmn2:process id="procure_to_pay" name="采购到付款流程" isExecutable="true">
+        
+        <!-- 开始事件 -->
+        <bpmn2:startEvent id="start_event" name="开始">
+            <bpmn2:outgoing>flow_to_validate</bpmn2:outgoing>
+        </bpmn2:startEvent>
+        
+        <!-- 步骤1: 验证采购需求 -->
+        <bpmn2:serviceTask id="ai_validate_requirement" name="验证采购需求（供应商、物料、数量）">
+            <bpmn2:extensionElements>
+                <lumina:aiWorkflowConfig>
+                    <lumina:workflowId>procure_to_pay_v1</lumina:workflowId>
+                    <lumina:agents>
+                        <lumina:agent 
+                            id="requirement_validation_agent" 
+                            type="validation"
+                            capabilities="supplier_validation,material_validation,quantity_validation"
+                            model="gpt-4"
+                            temperature="0.3"
+                            max_tokens="1000"
+                            prompt_template="验证采购需求：供应商={supplier_code}, 物料={material_code}, 数量={quantity}"
+                            system_message="你是一个专业的采购需求验证助手，负责验证采购需求的完整性和有效性。"
+                            timeout="30"
+                            retry_count="2"/>
+                    </lumina:agents>
+                    <lumina:fallback strategy="manual_review" target="manual_review_task"/>
+                    <lumina:threshold>0.8</lumina:threshold>
+                </lumina:aiWorkflowConfig>
+            </bpmn2:extensionElements>
+            <bpmn2:incoming>flow_to_validate</bpmn2:incoming>
+            <bpmn2:outgoing>flow_to_gateway</bpmn2:outgoing>
+        </bpmn2:serviceTask>
+        
+        <!-- 验证结果网关 -->
+        <bpmn2:exclusiveGateway id="validation_gateway" name="需求是否有效？" gatewayDirection="Diverging">
+            <bpmn2:incoming>flow_to_gateway</bpmn2:incoming>
+            <bpmn2:outgoing>flow_valid</bpmn2:outgoing>
+            <bpmn2:outgoing>flow_invalid</bpmn2:outgoing>
+        </bpmn2:exclusiveGateway>
+        
+        <!-- 验证通过路径 -->
+        <bpmn2:sequenceFlow id="flow_valid" sourceRef="validation_gateway" targetRef="ai_budget_check">
+            <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression">${validation_result == true}</bpmn2:conditionExpression>
+        </bpmn2:sequenceFlow>
+        
+        <!-- 验证失败路径 -->
+        <bpmn2:sequenceFlow id="flow_invalid" sourceRef="validation_gateway" targetRef="request_info">
+            <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression">${validation_result == false}</bpmn2:conditionExpression>
+        </bpmn2:sequenceFlow>
+        
+        <!-- 步骤2: 检查预算可用性 -->
+        <bpmn2:serviceTask id="ai_budget_check" name="检查预算可用性（金额、部门、项目）">
+            <bpmn2:extensionElements>
+                <lumina:aiWorkflowConfig>
+                    <lumina:workflowId>procure_to_pay_v1</lumina:workflowId>
+                    <lumina:agents>
+                        <lumina:agent 
+                            id="budget_check_agent" 
+                            type="decision"
+                            capabilities="budget_calculation,approval_routing"
+                            model="gpt-4"
+                            temperature="0.2"
+                            max_tokens="800"
+                            prompt_template="检查预算：金额={total_amount}, 部门={department}, 项目={project}"
+                            system_message="你是一个专业的预算检查助手，负责检查采购金额是否在预算范围内，并决定是否需要审批。"
+                            timeout="20"
+                            retry_count="1"/>
+                    </lumina:agents>
+                    <lumina:fallback strategy="manual_approval" target="manager_approval"/>
+                </lumina:aiWorkflowConfig>
+            </bpmn2:extensionElements>
+            <bpmn2:incoming>flow_valid</bpmn2:incoming>
+            <bpmn2:outgoing>flow_to_budget_gateway</bpmn2:outgoing>
+        </bpmn2:serviceTask>
+        
+        <!-- 预算检查网关 -->
+        <bpmn2:exclusiveGateway id="budget_gateway" name="预算是否充足？" gatewayDirection="Diverging">
+            <bpmn2:incoming>flow_to_budget_gateway</bpmn2:incoming>
+            <bpmn2:outgoing>flow_auto_approve</bpmn2:outgoing>
+            <bpmn2:outgoing>flow_need_approval</bpmn2:outgoing>
+            <bpmn2:outgoing>flow_budget_insufficient</bpmn2:outgoing>
+        </bpmn2:exclusiveGateway>
+        
+        <!-- 自动审批路径（金额小于5万） -->
+        <bpmn2:sequenceFlow id="flow_auto_approve" sourceRef="budget_gateway" targetRef="create_po">
+            <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression">${total_amount &lt; 50000 &amp;&amp; budget_available == true}</bpmn2:conditionExpression>
+        </bpmn2:sequenceFlow>
+        
+        <!-- 需要审批路径（金额大于等于5万） -->
+        <bpmn2:sequenceFlow id="flow_need_approval" sourceRef="budget_gateway" targetRef="ai_approval">
+            <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression">${total_amount &gt;= 50000 &amp;&amp; budget_available == true}</bpmn2:conditionExpression>
+        </bpmn2:sequenceFlow>
+        
+        <!-- 预算不足路径 -->
+        <bpmn2:sequenceFlow id="flow_budget_insufficient" sourceRef="budget_gateway" targetRef="budget_rejection">
+            <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression">${budget_available == false}</bpmn2:conditionExpression>
+        </bpmn2:sequenceFlow>
+        
+        <!-- 步骤3: 审批采购订单（金额≥5万） -->
+        <bpmn2:serviceTask id="ai_approval" name="审批采购订单（评估风险与合规性）">
+            <bpmn2:extensionElements>
+                <lumina:aiWorkflowConfig>
+                    <lumina:workflowId>procure_to_pay_v1</lumina:workflowId>
+                    <lumina:agents>
+                        <lumina:agent 
+                            id="approval_agent" 
+                            type="decision"
+                            capabilities="risk_assessment,policy_compliance,approval_recommendation"
+                            model="gpt-4"
+                            temperature="0.1"
+                            max_tokens="1500"
+                            prompt_template="审批采购订单：订单号={po_number}, 金额={total_amount}, 供应商={supplier_name}, 物料={material_name}, 数量={quantity}"
+                            system_message="你是一个专业的采购审批助手，负责评估采购订单的风险和合规性，并给出审批建议。需要考虑：供应商资质、价格合理性、预算合规性、采购政策等。"
+                            timeout="60"
+                            retry_count="1"/>
+                    </lumina:agents>
+                    <lumina:fallback strategy="escalate" target="manager_approval"/>
+                    <lumina:threshold>0.85</lumina:threshold>
+                </lumina:aiWorkflowConfig>
+            </bpmn2:extensionElements>
+            <bpmn2:incoming>flow_need_approval</bpmn2:incoming>
+            <bpmn2:outgoing>flow_to_approval_gateway</bpmn2:outgoing>
+        </bpmn2:serviceTask>
+        
+        <!-- 审批结果网关 -->
+        <bpmn2:exclusiveGateway id="approval_gateway" name="审批是否通过？" gatewayDirection="Diverging">
+            <bpmn2:incoming>flow_to_approval_gateway</bpmn2:incoming>
+            <bpmn2:outgoing>flow_approved</bpmn2:outgoing>
+            <bpmn2:outgoing>flow_rejected</bpmn2:outgoing>
+            <bpmn2:outgoing>flow_escalate</bpmn2:outgoing>
+        </bpmn2:exclusiveGateway>
+        
+        <!-- 审批通过 -->
+        <bpmn2:sequenceFlow id="flow_approved" sourceRef="approval_gateway" targetRef="create_po">
+            <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression">${approval_result == 'approved'}</bpmn2:conditionExpression>
+        </bpmn2:sequenceFlow>
+        
+        <!-- 审批拒绝 -->
+        <bpmn2:sequenceFlow id="flow_rejected" sourceRef="approval_gateway" targetRef="approval_rejection">
+            <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression">${approval_result == 'rejected'}</bpmn2:conditionExpression>
+        </bpmn2:sequenceFlow>
+        
+        <!-- 升级审批 -->
+        <bpmn2:sequenceFlow id="flow_escalate" sourceRef="approval_gateway" targetRef="manager_approval">
+            <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression">${approval_result == 'escalate'}</bpmn2:conditionExpression>
+        </bpmn2:sequenceFlow>
+        
+        <!-- 步骤4: 创建采购订单 -->
+        <bpmn2:serviceTask id="create_po" name="创建采购订单（生成PO号）" implementation="##WebService">
+            <bpmn2:incoming>flow_auto_approve</bpmn2:incoming>
+            <bpmn2:incoming>flow_approved</bpmn2:incoming>
+            <bpmn2:outgoing>flow_to_receive</bpmn2:outgoing>
+        </bpmn2:serviceTask>
+        
+        <!-- 步骤5: 确认货物接收 -->
+        <bpmn2:userTask id="receive_goods" name="确认货物接收（仓库管理员）" assignee="${warehouse_manager}">
+            <bpmn2:incoming>flow_to_receive</bpmn2:incoming>
+            <bpmn2:outgoing>flow_to_quality_check</bpmn2:outgoing>
+        </bpmn2:userTask>
+        
+        <!-- 步骤6: 检查货物质量 -->
+        <bpmn2:serviceTask id="ai_quality_check" name="检查货物质量（分析质检报告）">
+            <bpmn2:extensionElements>
+                <lumina:aiWorkflowConfig>
+                    <lumina:workflowId>procure_to_pay_v1</lumina:workflowId>
+                    <lumina:agents>
+                        <lumina:agent 
+                            id="quality_check_agent" 
+                            type="analysis"
+                            capabilities="quality_assessment,defect_detection,compliance_check"
+                            model="gpt-4"
+                            temperature="0.2"
+                            max_tokens="1200"
+                            prompt_template="质量检查：订单号={po_number}, 物料={material_name}, 数量={quantity}, 收货单={receipt_number}, 质检报告={quality_report}"
+                            system_message="你是一个专业的质量检查助手，负责分析收货质量报告，识别潜在问题，并给出质量评估结果。"
+                            timeout="45"
+                            retry_count="1"/>
+                    </lumina:agents>
+                    <lumina:fallback strategy="manual_inspection" target="manual_inspection_task"/>
+                </lumina:aiWorkflowConfig>
+            </bpmn2:extensionElements>
+            <bpmn2:incoming>flow_to_quality_check</bpmn2:incoming>
+            <bpmn2:outgoing>flow_to_quality_gateway</bpmn2:outgoing>
+        </bpmn2:serviceTask>
+        
+        <!-- 质量检查网关 -->
+        <bpmn2:exclusiveGateway id="quality_gateway" name="质量是否合格？" gatewayDirection="Diverging">
+            <bpmn2:incoming>flow_to_quality_gateway</bpmn2:incoming>
+            <bpmn2:outgoing>flow_quality_pass</bpmn2:outgoing>
+            <bpmn2:outgoing>flow_quality_fail</bpmn2:outgoing>
+        </bpmn2:exclusiveGateway>
+        
+        <!-- 质量合格 -->
+        <bpmn2:sequenceFlow id="flow_quality_pass" sourceRef="quality_gateway" targetRef="invoice_verification">
+            <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression">${quality_result == 'pass'}</bpmn2:conditionExpression>
+        </bpmn2:sequenceFlow>
+        
+        <!-- 质量不合格 -->
+        <bpmn2:sequenceFlow id="flow_quality_fail" sourceRef="quality_gateway" targetRef="quality_rejection">
+            <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression">${quality_result == 'fail'}</bpmn2:conditionExpression>
+        </bpmn2:sequenceFlow>
+        
+        <!-- 步骤7: 校验供应商发票 -->
+        <bpmn2:serviceTask id="invoice_verification" name="校验供应商发票（金额、物料、数量）">
+            <bpmn2:extensionElements>
+                <lumina:aiWorkflowConfig>
+                    <lumina:workflowId>procure_to_pay_v1</lumina:workflowId>
+                    <lumina:agents>
+                        <lumina:agent 
+                            id="invoice_verification_agent" 
+                            type="validation"
+                            capabilities="invoice_matching,amount_verification,tax_calculation"
+                            model="gpt-4"
+                            temperature="0.1"
+                            max_tokens="1000"
+                            prompt_template="发票校验：订单号={po_number}, 发票号={invoice_number}, 发票金额={invoice_amount}, 订单金额={po_amount}, 税率={tax_rate}"
+                            system_message="你是一个专业的发票校验助手，负责验证发票与采购订单的一致性，包括金额、物料、数量等。"
+                            timeout="30"
+                            retry_count="2"/>
+                    </lumina:agents>
+                    <lumina:fallback strategy="manual_verification" target="manual_invoice_check"/>
+                </lumina:aiWorkflowConfig>
+            </bpmn2:extensionElements>
+            <bpmn2:incoming>flow_quality_pass</bpmn2:incoming>
+            <bpmn2:outgoing>flow_to_invoice_gateway</bpmn2:outgoing>
+        </bpmn2:serviceTask>
+        
+        <!-- 发票校验网关 -->
+        <bpmn2:exclusiveGateway id="invoice_gateway" name="发票是否匹配？" gatewayDirection="Diverging">
+            <bpmn2:incoming>flow_to_invoice_gateway</bpmn2:incoming>
+            <bpmn2:outgoing>flow_invoice_match</bpmn2:outgoing>
+            <bpmn2:outgoing>flow_invoice_mismatch</bpmn2:outgoing>
+        </bpmn2:exclusiveGateway>
+        
+        <!-- 发票匹配 -->
+        <bpmn2:sequenceFlow id="flow_invoice_match" sourceRef="invoice_gateway" targetRef="ai_payment_processing">
+            <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression">${invoice_match == true}</bpmn2:conditionExpression>
+        </bpmn2:sequenceFlow>
+        
+        <!-- 发票不匹配 -->
+        <bpmn2:sequenceFlow id="flow_invoice_mismatch" sourceRef="invoice_gateway" targetRef="invoice_rejection">
+            <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression">${invoice_match == false}</bpmn2:conditionExpression>
+        </bpmn2:sequenceFlow>
+        
+        <!-- 步骤8: 处理付款申请 -->
+        <bpmn2:serviceTask id="ai_payment_processing" name="处理付款申请（确定付款时间与方式）">
+            <bpmn2:extensionElements>
+                <lumina:aiWorkflowConfig>
+                    <lumina:workflowId>procure_to_pay_v1</lumina:workflowId>
+                    <lumina:agents>
+                        <lumina:agent 
+                            id="payment_agent" 
+                            type="decision"
+                            capabilities="payment_scheduling,risk_assessment,payment_method_selection"
+                            model="gpt-4"
+                            temperature="0.1"
+                            max_tokens="1200"
+                            prompt_template="付款处理：订单号={po_number}, 发票号={invoice_number}, 付款金额={payment_amount}, 付款条件={payment_terms}, 供应商={supplier_name}"
+                            system_message="你是一个专业的付款处理助手，负责确定付款时间、付款方式，评估付款风险，并给出付款建议。"
+                            timeout="40"
+                            retry_count="1"/>
+                    </lumina:agents>
+                    <lumina:fallback strategy="manual_payment" target="manual_payment_task"/>
+                </lumina:aiWorkflowConfig>
+            </bpmn2:extensionElements>
+            <bpmn2:incoming>flow_invoice_match</bpmn2:incoming>
+            <bpmn2:outgoing>flow_to_payment</bpmn2:outgoing>
+        </bpmn2:serviceTask>
+        
+        <!-- 步骤9: 完成付款 -->
+        <bpmn2:serviceTask id="execute_payment" name="完成付款（生成付款凭证）" implementation="##WebService">
+            <bpmn2:incoming>flow_to_payment</bpmn2:incoming>
+            <bpmn2:outgoing>flow_to_end</bpmn2:outgoing>
+        </bpmn2:serviceTask>
+        
+        <!-- 结束事件 -->
+        <bpmn2:endEvent id="end_event" name="完成">
+            <bpmn2:incoming>flow_to_end</bpmn2:incoming>
+        </bpmn2:endEvent>
+        
+        <!-- 异常处理节点 -->
+        <bpmn2:userTask id="request_info" name="请求补充采购信息">
+            <bpmn2:incoming>flow_invalid</bpmn2:incoming>
+        </bpmn2:userTask>
+        
+        <bpmn2:endEvent id="budget_rejection" name="预算不足，流程终止">
+            <bpmn2:incoming>flow_budget_insufficient</bpmn2:incoming>
+        </bpmn2:endEvent>
+        
+        <bpmn2:userTask id="manager_approval" name="经理人工审批">
+            <bpmn2:incoming>flow_escalate</bpmn2:incoming>
+            <bpmn2:outgoing>flow_manager_approved</bpmn2:outgoing>
+        </bpmn2:userTask>
+        
+        <bpmn2:sequenceFlow id="flow_manager_approved" sourceRef="manager_approval" targetRef="create_po"/>
+        
+        <bpmn2:endEvent id="approval_rejection" name="审批拒绝，流程终止">
+            <bpmn2:incoming>flow_rejected</bpmn2:incoming>
+        </bpmn2:endEvent>
+        
+        <bpmn2:endEvent id="quality_rejection" name="质量不合格，流程终止">
+            <bpmn2:incoming>flow_quality_fail</bpmn2:incoming>
+        </bpmn2:endEvent>
+        
+        <bpmn2:endEvent id="invoice_rejection" name="发票不匹配，流程终止">
+            <bpmn2:incoming>flow_invoice_mismatch</bpmn2:incoming>
+        </bpmn2:endEvent>
+        
+        <!-- 连接线定义 -->
+        <bpmn2:sequenceFlow id="flow_to_validate" sourceRef="start_event" targetRef="ai_validate_requirement"/>
+        <bpmn2:sequenceFlow id="flow_to_gateway" sourceRef="ai_validate_requirement" targetRef="validation_gateway"/>
+        <bpmn2:sequenceFlow id="flow_to_budget_gateway" sourceRef="ai_budget_check" targetRef="budget_gateway"/>
+        <bpmn2:sequenceFlow id="flow_to_receive" sourceRef="create_po" targetRef="receive_goods"/>
+        <bpmn2:sequenceFlow id="flow_to_quality_check" sourceRef="receive_goods" targetRef="ai_quality_check"/>
+        <bpmn2:sequenceFlow id="flow_to_quality_gateway" sourceRef="ai_quality_check" targetRef="quality_gateway"/>
+        <bpmn2:sequenceFlow id="flow_to_invoice_gateway" sourceRef="invoice_verification" targetRef="invoice_gateway"/>
+        <bpmn2:sequenceFlow id="flow_to_payment" sourceRef="ai_payment_processing" targetRef="execute_payment"/>
+        <bpmn2:sequenceFlow id="flow_to_end" sourceRef="execute_payment" targetRef="end_event"/>
+        
+    </bpmn2:process>
+    
+    <!-- BPMN DI (Diagram Interchange) - 可视化布局 -->
+    <bpmndi:BPMNDiagram id="BPMNDiagram_procure_to_pay">
+        <bpmndi:BPMNPlane id="BPMNPlane_procure_to_pay" bpmnElement="procure_to_pay">
+            <!-- 节点位置定义 -->
+            <bpmndi:BPMNShape id="start_event_di" bpmnElement="start_event">
+                <dc:Bounds x="100" y="300" width="36" height="36"/>
+            </bpmndi:BPMNShape>
+            
+            <bpmndi:BPMNShape id="ai_validate_requirement_di" bpmnElement="ai_validate_requirement">
+                <dc:Bounds x="200" y="270" width="120" height="80"/>
+            </bpmndi:BPMNShape>
+            
+            <bpmndi:BPMNShape id="validation_gateway_di" bpmnElement="validation_gateway">
+                <dc:Bounds x="380" y="285" width="50" height="50"/>
+            </bpmndi:BPMNShape>
+            
+            <bpmndi:BPMNShape id="ai_budget_check_di" bpmnElement="ai_budget_check">
+                <dc:Bounds x="500" y="270" width="120" height="80"/>
+            </bpmndi:BPMNShape>
+            
+            <bpmndi:BPMNShape id="budget_gateway_di" bpmnElement="budget_gateway">
+                <dc:Bounds x="680" y="285" width="50" height="50"/>
+            </bpmndi:BPMNShape>
+            
+            <bpmndi:BPMNShape id="ai_approval_di" bpmnElement="ai_approval">
+                <dc:Bounds x="800" y="200" width="120" height="80"/>
+            </bpmndi:BPMNShape>
+            
+            <bpmndi:BPMNShape id="approval_gateway_di" bpmnElement="approval_gateway">
+                <dc:Bounds x="980" y="215" width="50" height="50"/>
+            </bpmndi:BPMNShape>
+            
+            <bpmndi:BPMNShape id="create_po_di" bpmnElement="create_po">
+                <dc:Bounds x="1100" y="270" width="100" height="80"/>
+            </bpmndi:BPMNShape>
+            
+            <bpmndi:BPMNShape id="receive_goods_di" bpmnElement="receive_goods">
+                <dc:Bounds x="1260" y="270" width="100" height="80"/>
+            </bpmndi:BPMNShape>
+            
+            <bpmndi:BPMNShape id="ai_quality_check_di" bpmnElement="ai_quality_check">
+                <dc:Bounds x="1420" y="270" width="120" height="80"/>
+            </bpmndi:BPMNShape>
+            
+            <bpmndi:BPMNShape id="quality_gateway_di" bpmnElement="quality_gateway">
+                <dc:Bounds x="1600" y="285" width="50" height="50"/>
+            </bpmndi:BPMNShape>
+            
+            <bpmndi:BPMNShape id="invoice_verification_di" bpmnElement="invoice_verification">
+                <dc:Bounds x="1720" y="270" width="120" height="80"/>
+            </bpmndi:BPMNShape>
+            
+            <bpmndi:BPMNShape id="invoice_gateway_di" bpmnElement="invoice_gateway">
+                <dc:Bounds x="1900" y="285" width="50" height="50"/>
+            </bpmndi:BPMNShape>
+            
+            <bpmndi:BPMNShape id="ai_payment_processing_di" bpmnElement="ai_payment_processing">
+                <dc:Bounds x="2020" y="270" width="120" height="80"/>
+            </bpmndi:BPMNShape>
+            
+            <bpmndi:BPMNShape id="execute_payment_di" bpmnElement="execute_payment">
+                <dc:Bounds x="2200" y="270" width="100" height="80"/>
+            </bpmndi:BPMNShape>
+            
+            <bpmndi:BPMNShape id="end_event_di" bpmnElement="end_event">
+                <dc:Bounds x="2360" y="300" width="36" height="36"/>
+            </bpmndi:BPMNShape>
+            
+            <!-- 连接线位置定义 -->
+            <bpmndi:BPMNEdge id="flow_to_validate_di" bpmnElement="flow_to_validate">
+                <di:waypoint x="136" y="318"/>
+                <di:waypoint x="200" y="310"/>
+            </bpmndi:BPMNEdge>
+            
+            <bpmndi:BPMNEdge id="flow_to_gateway_di" bpmnElement="flow_to_gateway">
+                <di:waypoint x="320" y="310"/>
+                <di:waypoint x="380" y="310"/>
+            </bpmndi:BPMNEdge>
+            
+            <bpmndi:BPMNEdge id="flow_valid_di" bpmnElement="flow_valid">
+                <di:waypoint x="430" y="310"/>
+                <di:waypoint x="500" y="310"/>
+            </bpmndi:BPMNEdge>
+            
+            <bpmndi:BPMNEdge id="flow_to_budget_gateway_di" bpmnElement="flow_to_budget_gateway">
+                <di:waypoint x="620" y="310"/>
+                <di:waypoint x="680" y="310"/>
+            </bpmndi:BPMNEdge>
+            
+            <bpmndi:BPMNEdge id="flow_auto_approve_di" bpmnElement="flow_auto_approve">
+                <di:waypoint x="730" y="310"/>
+                <di:waypoint x="1100" y="310"/>
+            </bpmndi:BPMNEdge>
+            
+            <bpmndi:BPMNEdge id="flow_need_approval_di" bpmnElement="flow_need_approval">
+                <di:waypoint x="705" y="285"/>
+                <di:waypoint x="705" y="240"/>
+                <di:waypoint x="800" y="240"/>
+            </bpmndi:BPMNEdge>
+            
+            <bpmndi:BPMNEdge id="flow_to_approval_gateway_di" bpmnElement="flow_to_approval_gateway">
+                <di:waypoint x="920" y="240"/>
+                <di:waypoint x="980" y="240"/>
+            </bpmndi:BPMNEdge>
+            
+            <bpmndi:BPMNEdge id="flow_approved_di" bpmnElement="flow_approved">
+                <di:waypoint x="1005" y="215"/>
+                <di:waypoint x="1005" y="310"/>
+                <di:waypoint x="1100" y="310"/>
+            </bpmndi:BPMNEdge>
+            
+            <bpmndi:BPMNEdge id="flow_to_receive_di" bpmnElement="flow_to_receive">
+                <di:waypoint x="1200" y="310"/>
+                <di:waypoint x="1260" y="310"/>
+            </bpmndi:BPMNEdge>
+            
+            <bpmndi:BPMNEdge id="flow_to_quality_check_di" bpmnElement="flow_to_quality_check">
+                <di:waypoint x="1360" y="310"/>
+                <di:waypoint x="1420" y="310"/>
+            </bpmndi:BPMNEdge>
+            
+            <bpmndi:BPMNEdge id="flow_to_quality_gateway_di" bpmnElement="flow_to_quality_gateway">
+                <di:waypoint x="1540" y="310"/>
+                <di:waypoint x="1600" y="310"/>
+            </bpmndi:BPMNEdge>
+            
+            <bpmndi:BPMNEdge id="flow_quality_pass_di" bpmnElement="flow_quality_pass">
+                <di:waypoint x="1650" y="310"/>
+                <di:waypoint x="1720" y="310"/>
+            </bpmndi:BPMNEdge>
+            
+            <bpmndi:BPMNEdge id="flow_to_invoice_gateway_di" bpmnElement="flow_to_invoice_gateway">
+                <di:waypoint x="1840" y="310"/>
+                <di:waypoint x="1900" y="310"/>
+            </bpmndi:BPMNEdge>
+            
+            <bpmndi:BPMNEdge id="flow_invoice_match_di" bpmnElement="flow_invoice_match">
+                <di:waypoint x="1950" y="310"/>
+                <di:waypoint x="2020" y="310"/>
+            </bpmndi:BPMNEdge>
+            
+            <bpmndi:BPMNEdge id="flow_to_payment_di" bpmnElement="flow_to_payment">
+                <di:waypoint x="2140" y="310"/>
+                <di:waypoint x="2200" y="310"/>
+            </bpmndi:BPMNEdge>
+            
+            <bpmndi:BPMNEdge id="flow_to_end_di" bpmnElement="flow_to_end">
+                <di:waypoint x="2300" y="310"/>
+                <di:waypoint x="2360" y="318"/>
+            </bpmndi:BPMNEdge>
+            
+        </bpmndi:BPMNPlane>
+    </bpmndi:BPMNDiagram>
+    
+</bpmn2:definitions>
+

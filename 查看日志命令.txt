@@ -1,0 +1,14 @@
+请在新终端窗口执行以下命令查看知识库服务日志：
+
+1. 查看最近200行日志：
+ssh -i enterprise_ai_platform.pem -o StrictHostKeyChecking=no ubuntu@43.143.139.197 "docker logs enterprise-ai-knowledge-base --tail 200"
+
+2. 查看包含"error"或"processing"的日志：
+ssh -i enterprise_ai_platform.pem -o StrictHostKeyChecking=no ubuntu@43.143.139.197 "docker logs enterprise-ai-knowledge-base --tail 500 | grep -i 'error\|processing\|parsing\|failed'"
+
+3. 实时查看日志（按Ctrl+C退出）：
+ssh -i enterprise_ai_platform.pem -o StrictHostKeyChecking=no ubuntu@43.143.139.197 "docker logs enterprise-ai-knowledge-base -f"
+
+4. 查看最近10分钟的日志：
+ssh -i enterprise_ai_platform.pem -o StrictHostKeyChecking=no ubuntu@43.143.139.197 "docker logs enterprise-ai-knowledge-base --since 10m"
+

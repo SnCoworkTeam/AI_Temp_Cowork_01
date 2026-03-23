@@ -1,0 +1,20 @@
+# 快速强制重新创建所有服务
+# 复制执行
+
+cd /opt/enterprise-ai-platform
+
+# 强制重新创建并启动
+sudo docker compose up -d --force-recreate postgres redis mcp-gateway
+
+# 等待启动
+sleep 25
+
+# 检查状态
+sudo docker compose ps
+
+# 查看所有容器
+sudo docker ps
+
+# 测试服务
+curl http://localhost:8001/api/health
+

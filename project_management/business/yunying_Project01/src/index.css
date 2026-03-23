@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  line-height: 1.5;
+  font-weight: 400;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Excel-like Table Styles */
+.excel-preview table {
+  border-collapse: collapse;
+  width: 100%;
+  font-family: Calibri, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  color: #000;
+  border: 1px solid #d0d7e5;
+}
+
+.excel-preview th {
+  background-color: #f2f2f2;
+  border: 1px solid #d0d7e5;
+  font-weight: 600; /* Slightly bolder for headers */
+  text-align: center;
+  padding: 6px 10px;
+  color: #333;
+}
+
+.excel-preview td {
+  border: 1px solid #d0d7e5;
+  padding: 6px 10px;
+  white-space: nowrap; /* Prevent wrapping like Excel */
+}
+
+/* Add a bit of hover effect for rows */
+.excel-preview tr:hover {
+  background-color: #f9f9f9;
+}
+
+/* Handle overflow for long text in cells if needed, though nowrap is usually preferred for Excel look */
+.excel-preview td.wrap-text {
+  white-space: normal;
+}

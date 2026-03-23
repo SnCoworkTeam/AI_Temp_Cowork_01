@@ -1,0 +1,107 @@
+# 深度排查shared_libs导入问题
+# 在服务器上执行以下命令
+
+cd /opt/enterprise-ai-platform
+
+# 1. 检查容器内的__init__.py是否正确
+echo "=== Checking __init__.py in container ==="
+sudo docker exec enterprise-ai-mcp-gateway cat /shared_libs/__init__.py | head -10
+
+# 2. 测试直接执行__init__.py
+echo ""
+echo "=== Testing __init__.py execution ==="
+sudo docker exec enterprise-ai-mcp-gateway python << 'EOF'
+import sys
+print("Python paths:")
+for p in sys.path:
+    print(f"  {p}")
+
+print("\nTesting import...")
+try:
+    # 直接导入
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("shared_libs", "/shared_libs/__init__.py")
+    if spec is None:
+        print("ERROR: Cannot create spec from /shared_libs/__init__.py")
+    else:
+        print("Spec created successfully")
+        module = importlib.util.module_from_spec(spec)
+        print("Module created successfully")
+        spec.loader.exec_module(module)
+        print("Module loaded successfully")
+        print(f"Module location: {module.__file__ if hasattr(module, '__file__') else 'N/A'}")
+except Exception as e:
+    import traceback
+    traceback.print_exc()
+EOF
+
+# 3. 测试作为包导入
+echo ""
+echo "=== Testing package import ==="
+sudo docker exec enterprise-ai-mcp-gateway python << 'EOF'
+import sys
+sys.path.insert(0, '/shared_libs')
+import traceback
+
+print("Python paths after insert:")
+for p in sys.path[:3]:
+    print(f"  {p}")
+
+print("\nTesting shared_libs import...")
+try:
+    import shared_libs
+    print("SUCCESS: shared_libs imported")
+    print(f"Location: {shared_libs.__file__ if hasattr(shared_libs, '__file__') else 'N/A'}")
+    print(f"__all__: {shared_libs.__all__ if hasattr(shared_libs, '__all__') else 'N/A'}")
+except Exception as e:
+    print("FAILED:")
+    traceback.print_exc()
+EOF
+
+# 4. 检查schemas目录
+echo ""
+echo "=== Checking schemas directory ==="
+sudo docker exec enterprise-ai-mcp-gateway ls -la /shared_libs/schemas/
+
+# 5. 测试直接导入schemas
+echo ""
+echo "=== Testing schemas import ==="
+sudo docker exec enterprise-ai-mcp-gateway python << 'EOF'
+import sys
+sys.path.insert(0, '/shared_libs')
+import traceback
+
+try:
+    # 先导入shared_libs
+    import shared_libs
+    print("shared_libs imported OK")
+    
+    # 然后导入schemas
+    from shared_libs.schemas import monitoring_schemas
+    print("monitoring_schemas imported OK")
+    
+    # 最后导入具体类
+    from shared_libs.schemas.monitoring_schemas import ServiceMonitoringData
+    print("ServiceMonitoringData imported OK")
+except Exception as e:
+    print("FAILED:")
+    traceback.print_exc()
+EOF
+
+# ============================================
+# 一键排查命令
+# ============================================
+cd /opt/enterprise-ai-platform && sudo docker exec enterprise-ai-mcp-gateway python << 'EOF'
+import sys
+sys.path.insert(0, '/shared_libs')
+import traceback
+print("=== Testing shared_libs import ===")
+try:
+    import shared_libs
+    print("OK: shared_libs imported")
+    from shared_libs.schemas.monitoring_schemas import ServiceMonitoringData
+    print("OK: ServiceMonitoringData imported")
+except Exception as e:
+    traceback.print_exc()
+EOF
+

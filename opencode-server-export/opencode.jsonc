@@ -1,0 +1,22 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "enabled_providers": ["sinochem"],
+  "provider": {
+    "sinochem": {
+      "name": "Sinochem Model Service",
+      "env": ["SINOCHEM_API_KEY"],
+      "options": {
+        "baseURL": "http://opencode-llm-proxy:18080/api/model-service/v1"
+      }
+    }
+  },
+  "permission": "allow",
+  "agent": {
+    "build": {
+      "steps": 30
+    },
+    "general": {
+      "steps": 30
+    }
+  }
+}

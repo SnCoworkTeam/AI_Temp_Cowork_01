@@ -1,0 +1,38 @@
+# 修复metadata保留字问题
+# 问题：metadata是SQLAlchemy的保留属性名，不能用作字段名
+# 解决：将User模型中的metadata字段重命名为user_metadata
+
+# ============================================
+# 第一步：在本地PowerShell上传修复后的user_models.py
+# ============================================
+# 在本地Windows PowerShell中执行：
+
+scp -i "E:\enterprise-ai-platform\enterprise_ai_platform.pem" -o StrictHostKeyChecking=no database/src/models/user_models.py ubuntu@43.143.139.197:/opt/enterprise-ai-platform/database/src/models/
+
+# ============================================
+# 第二步：在服务器上重启服务（代码已热重载）
+# ============================================
+# SSH到服务器后执行：
+
+cd /opt/enterprise-ai-platform
+
+# 1. 重启mcp-gateway（代码已热重载，但需要重启确保加载新代码）
+sudo docker compose restart mcp-gateway
+
+# 2. 等待启动
+sleep 20
+
+# 3. 检查状态
+sudo docker compose ps mcp-gateway
+
+# 4. 查看日志（应该没有metadata保留字错误了）
+sudo docker compose logs --tail=30 mcp-gateway
+
+# 5. 测试服务
+curl http://localhost:8001/api/health
+
+# ============================================
+# 一键执行命令（服务器上）
+# ============================================
+cd /opt/enterprise-ai-platform && sudo docker compose restart mcp-gateway && sleep 20 && echo "=== Status ===" && sudo docker compose ps mcp-gateway && echo "" && echo "=== Logs ===" && sudo docker compose logs --tail=20 mcp-gateway && echo "" && echo "=== Test ===" && curl -s http://localhost:8001/api/health
+

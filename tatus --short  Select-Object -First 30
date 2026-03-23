@@ -1,0 +1,117 @@
+warning: in the working copy of 'agent-service/src/main.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'api-gateway/src/core/enhanced_intelligent_router.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'api-gateway/src/core/proxy.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'api-gateway/src/main.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'api-gateway/src/services/unified_search_service.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'auth-service/src/main.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'check-services.sh', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'import_sap_mm_documents.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'knowledge-base/src/repositories/search_history_repository.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'knowledge-base/src/services/document_service.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'mcp-gateway/src/config.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'mcp-gateway/src/main.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'metadata-service/src/api/knowledge_graph.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'metadata-service/src/main.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'registry-service/src/main.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'registry-service/src/routes/discovery.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'registry-service/src/routes/health.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'registry-service/src/routes/registry.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'scripts/add_sap_config.sh', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'scripts/deploy-to-server.sh', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'scripts/setup-server.sh', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'services/llm_client.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'services/semantic_engine_adapter.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'services/unified_intent_service.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'web-ui/package.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'web-ui/scripts/check-docker-services.sh', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'web-ui/src/app/knowledge-bases/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'web-ui/src/app/workflows/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'web-ui/src/components/ChatInterface.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'web-ui/src/components/DynamicWorkflowDisplay.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'web-ui/src/components/Layout/Sidebar.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'web-ui/src/components/MessageContent.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'web-ui/src/lib/api/workflow.ts', LF will be replaced by CRLF the next time Git touches it
+ README_DEPLOY.md                                   |   1 [32m+[m
+ agent-service/config/prompt_templates.yaml         |   1 [32m+[m
+ agent-service/src/core/prompt_engine/__init__.py   |   1 [32m+[m
+ .../src/core/prompt_engine/prompt_engine.py        |   1 [32m+[m
+ .../src/core/prompt_engine/prompt_optimizer.py     |   1 [32m+[m
+ .../src/core/prompt_engine/prompt_validator.py     |   1 [32m+[m
+ .../src/core/prompt_templates/__init__.py          |   1 [32m+[m
+ .../src/core/prompt_templates/base_templates.py    |   1 [32m+[m
+ .../src/core/websocket_manager/__init__.py         |   1 [32m+[m
+ .../core/websocket_manager/connection_manager.py   |   1 [32m+[m
+ .../core/websocket_manager/websocket_manager.py    |   1 [32m+[m
+ agent-service/src/main.py                          |  11 [32m++[m
+ agent-service/src/routes/interactive_chat.py       |   1 [32m+[m
+ .../src/core/enhanced_intelligent_router.py        |   8 [32m+[m[31m-[m
+ api-gateway/src/core/proxy.py                      |  35 [32m+++[m[31m--[m
+ api-gateway/src/main.py                            |  71 [32m+++++++++[m[31m-[m
+ api-gateway/src/services/unified_search_service.py |  20 [32m++[m[31m-[m
+ auth-service/src/main.py                           |  56 [32m+++++++[m[31m-[m
+ .../src/middleware/permission_middleware.py        |  32 [32m+++[m[31m--[m
+ auth-service/src/repositories/user_repository.py   |  27 [32m+++[m[31m-[m
+ check-services.sh                                  |   1 [32m+[m
+ dag-orchestrator/BUILD_INSTRUCTIONS.md             |   1 [32m+[m
+ dag-orchestrator/Dockerfile                        |   1 [32m+[m
+ dag-orchestrator/README.md                         |   1 [32m+[m
+ dag-orchestrator/requirements.txt                  |   1 [32m+[m
+ dag-orchestrator/src/__init__.py                   |   1 [32m+[m
+ dag-orchestrator/src/core/__init__.py              |   1 [32m+[m
+ dag-orchestrator/src/core/dag_engine.py            |   1 [32m+[m
+ dag-orchestrator/src/main.py                       |   1 [32m+[m
+ dag-orchestrator/src/models/__init__.py            |   1 [32m+[m
+ dag-orchestrator/src/models/dag_models.py          |   1 [32m+[m
+ dag-orchestrator/src/routes/__init__.py            |   1 [32m+[m
+ dag-orchestrator/src/routes/executions.py          |   1 [32m+[m
+ dag-orchestrator/src/routes/health.py              |   1 [32m+[m
+ dag-orchestrator/src/services/__init__.py          |   1 [32m+[m
+ dag-orchestrator/src/services/backend_clients.py   |   1 [32m+[m
+ .../versions/014_fix_mcp_tools_schema.py           |   1 [32m+[m
+ docker-compose.override.yml.example                |   1 [32m+[m
+ docs/ADD_SAP_CONFIG.md                             |   1 [32m+[m
+ docs/SAP_CONFIG_CENTER_FIX.md                      |   1 [32m+[m
+ docs/SAP_QUERY_FIX.md                              |   1 [32m+[m
+ import_sap_mm_documents.py                         |  22 [32m++[m[31m-[m
+ .../src/repositories/search_history_repository.py  |  24 [32m++[m[31m--[m
+ knowledge-base/src/services/document_service.py    |  11 [32m+[m[31m-[m
+ mcp-gateway/src/config.py                          |  23 [32m++[m[31m-[m
+ mcp-gateway/src/main.py                            |   2 [32m+[m[31m-[m
+ metadata-service/src/api/knowledge_graph.py        |   6 [32m+[m[31m-[m
+ metadata-service/src/main.py                       |   3 [32m+[m[31m-[m
+ registry-service/src/main.py                       |   6 [32m+[m
+ registry-service/src/routes/discovery.py           |  10 [32m+[m[31m-[m
+ registry-service/src/routes/health.py              |  16 [32m++[m[31m-[m
+ registry-service/src/routes/registry.py            |  13 [32m+[m[31m-[m
+ sap-odata-to-mcp-server                            |   0
+ scripts/add_sap_config.ps1                         |   1 [32m+[m
+ scripts/add_sap_config.py                          |   1 [32m+[m
+ scripts/add_sap_config.sh                          |   1 [32m+[m
+ scripts/add_sap_config_interactive.ps1             |   1 [32m+[m
+ scripts/deploy-to-server.sh                        |   1 [32m+[m
+ scripts/read_and_add_sap_config.ps1                |   1 [32m+[m
+ scripts/setup-server.sh                            |   1 [32m+[m
+ services/llm_client.py                             | 142 [32m++++++++++++++++++[m[31m-[m
+ services/semantic_engine_adapter.py                | 157 [32m++++++++++++++++++++[m[31m-[m
+ services/unified_intent_service.py                 | 133 [32m++++++++++++++++[m[31m-[m
+ shared-libs/luminaos_common/common/entity_uri.py   | 123 [31m----------------[m
+ .../schemas/interaction_protocol.py                |   1 [32m+[m
+ .../luminaos_common/schemas/workflow_schemas.py    |   5 [32m+[m
+ test-langgraph-import.py                           |   1 [32m+[m
+ web-ui/next.config.js                              |  29 [32m++++[m
+ web-ui/package.json                                |  24 [32m++[m[31m--[m
+ web-ui/scripts/check-docker-services.ps1           |   1 [32m+[m
+ web-ui/scripts/check-docker-services.sh            |   1 [32m+[m
+ web-ui/src/app/knowledge-bases/page.tsx            |  24 [32m+++[m[31m-[m
+ web-ui/src/app/message-styles.css                  |  71 [32m++++++++++[m
+ web-ui/src/app/workflows/page.tsx                  |  12 [32m+[m[31m-[m
+ web-ui/src/components/ChatInterface.tsx            |  58 [32m+[m[31m-------[m
+ web-ui/src/components/DynamicWorkflowDisplay.tsx   | 120 [32m++++++++++++[m[31m----[m
+ .../components/InteractiveChat/InteractiveChat.tsx |   1 [32m+[m
+ web-ui/src/components/Layout/Sidebar.tsx           |   8 [32m+[m[31m-[m
+ web-ui/src/components/MessageContent.tsx           |  37 [32m++++[m[31m-[m
+ web-ui/src/lib/api/client.ts                       |   6 [32m+[m[31m-[m
+ web-ui/src/lib/api/tools.ts                        |  14 [32m+[m[31m-[m
+ web-ui/src/lib/api/workflow.ts                     |  14 [32m+[m[31m-[m
+ web-ui/src/types/interaction.ts                    |   1 [32m+[m
+ 83 files changed, 1109 insertions(+), 310 deletions(-)

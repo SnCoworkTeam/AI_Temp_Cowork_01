@@ -1,0 +1,76 @@
+{
+  "postgresql": {
+    "status": "success",
+    "issues": [],
+    "cleaned_records": 0,
+    "table_counts": {
+      "users": 6,
+      "roles": 0,
+      "workflow_definitions": 5,
+      "workflow_nodes": 6,
+      "documents": 45,
+      "document_chunks": 890,
+      "knowledge_bases": 6,
+      "knowledge_graph_nodes": 715,
+      "knowledge_graph_edges": 304
+    },
+    "total_issues": 0
+  },
+  "neo4j": {
+    "status": "error",
+    "error": "Couldn't connect to 43.143.139.197:7687 (resolved to ()):\nTimed out trying to establish connection to ResolvedIPv4Address(('43.143.139.197', 7687))"
+  },
+  "qdrant": {
+    "status": "error",
+    "error": "Server disconnected without sending a response."
+  },
+  "redis": {},
+  "summary": {
+    "total_issues": 0,
+    "cleaned_records": 0,
+    "demo_data_status": {
+      "users": {
+        "min": 3,
+        "current": 6,
+        "need": false,
+        "status": "sufficient"
+      },
+      "roles": {
+        "min": 4,
+        "current": 0,
+        "need": true,
+        "status": "insufficient"
+      },
+      "workflows": {
+        "min": 2,
+        "current": 5,
+        "need": false,
+        "status": "sufficient"
+      },
+      "documents": {
+        "min": 5,
+        "current": 45,
+        "need": false,
+        "status": "sufficient"
+      },
+      "knowledge_bases": {
+        "min": 2,
+        "current": 6,
+        "need": false,
+        "status": "sufficient"
+      },
+      "neo4j_nodes": {
+        "min": 10,
+        "current": 0,
+        "need": true,
+        "status": "insufficient"
+      },
+      "neo4j_relationships": {
+        "min": 15,
+        "current": 0,
+        "need": true,
+        "status": "insufficient"
+      }
+    }
+  }
+}

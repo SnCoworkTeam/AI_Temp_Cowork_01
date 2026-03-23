@@ -1,0 +1,35 @@
+# 测试依赖
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.0
+pytest-xdist>=3.3.0  # 并行测试
+
+# 测试工具
+hypothesis>=6.82.0  # 属性测试
+locust>=2.15.0  # 性能测试
+
+# Mock工具
+fakeredis>=2.18.0  # Redis mock
+httpx>=0.24.0  # HTTP客户端
+responses>=0.23.0  # HTTP mock
+
+# 数据库测试
+sqlalchemy>=2.0.0
+alembic>=1.12.0
+
+# 其他工具
+freezegun>=1.2.0  # 时间mock
+factory-boy>=3.3.0  # 测试数据工厂
+
+# 向量存储（用于集成测试）
+chromadb>=0.4.0  # 向量数据库客户端
+
+
+
+
+
+
+
+
+

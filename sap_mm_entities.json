@@ -1,0 +1,194 @@
+{
+  "entities": [
+    {
+      "name": "material",
+      "display_name": "物料",
+      "entity_type": "data_object",
+      "description": "SAP MM模块中的物料主数据，包含物料的基本信息如物料号、描述、单位、价格等",
+      "business_definition": "物料是SAP MM模块的核心对象，用于管理企业的物料信息，包括物料编号、描述、单位、价格、分类等属性",
+      "metadata": {
+        "sap_table": "MARA",
+        "sap_module": "MM",
+        "category": "master_data",
+        "key_fields": ["MATNR", "MAKTX", "MEINS", "MTART", "MATKL"]
+      }
+    },
+    {
+      "name": "vendor",
+      "display_name": "供应商",
+      "entity_type": "data_object",
+      "description": "SAP MM模块中的供应商主数据，包含供应商的基本信息、联系方式、银行信息等",
+      "business_definition": "供应商是企业采购业务中的合作伙伴，负责向企业提供物料或服务",
+      "metadata": {
+        "sap_table": "LFA1",
+        "sap_module": "MM",
+        "category": "master_data",
+        "key_fields": ["LIFNR", "NAME1", "ORT01", "LAND1"]
+      }
+    },
+    {
+      "name": "purchase_order",
+      "display_name": "采购订单",
+      "entity_type": "business_process",
+      "description": "SAP MM模块中的采购订单，向供应商下达的正式采购文件",
+      "business_definition": "采购订单是向供应商下达的正式采购文件，包含采购物料、数量、价格、交货日期、付款条件等信息",
+      "metadata": {
+        "sap_table": "EKKO",
+        "sap_module": "MM",
+        "category": "transaction_data",
+        "key_fields": ["EBELN", "LIFNR", "BEDAT", "ZTERM"]
+      }
+    },
+    {
+      "name": "purchase_requisition",
+      "display_name": "采购申请",
+      "entity_type": "business_process",
+      "description": "SAP MM模块中的采购申请，内部需求部门提出的采购需求",
+      "business_definition": "采购申请是内部需求部门提出的采购需求，是采购流程的起点",
+      "metadata": {
+        "sap_table": "EBAN",
+        "sap_module": "MM",
+        "category": "transaction_data",
+        "key_fields": ["BANFN", "BNFPO", "MATNR", "MENGE"]
+      }
+    },
+    {
+      "name": "storage_location",
+      "display_name": "库存地点",
+      "entity_type": "data_object",
+      "description": "SAP MM模块中的库存地点，物料存储的物理位置",
+      "business_definition": "库存地点是物料存储的物理位置，用于管理物料的库存信息",
+      "metadata": {
+        "sap_table": "T001L",
+        "sap_module": "MM",
+        "category": "master_data",
+        "key_fields": ["WERKS", "LGORT", "LGOBE"]
+      }
+    },
+    {
+      "name": "material_document",
+      "display_name": "物料凭证",
+      "entity_type": "business_process",
+      "description": "SAP MM模块中的物料凭证，记录物料的移动",
+      "business_definition": "物料凭证记录物料的移动，如入库、出库、转移等，是库存管理的基础",
+      "metadata": {
+        "sap_table": "MKPF",
+        "sap_module": "MM",
+        "category": "transaction_data",
+        "key_fields": ["MBLNR", "MJAHR", "BUDAT", "BLART"]
+      }
+    },
+    {
+      "name": "info_record",
+      "display_name": "采购信息记录",
+      "entity_type": "data_object",
+      "description": "SAP MM模块中的采购信息记录，记录供应商与物料的采购信息",
+      "business_definition": "采购信息记录记录供应商与物料的采购信息，包括价格、交货时间、最小订购量等",
+      "metadata": {
+        "sap_table": "EINA",
+        "sap_module": "MM",
+        "category": "master_data"
+      }
+    },
+    {
+      "name": "source_list",
+      "display_name": "货源清单",
+      "entity_type": "data_object",
+      "description": "SAP MM模块中的货源清单，指定物料的供应商来源",
+      "business_definition": "货源清单指定物料的供应商来源，用于采购时的供应商选择",
+      "metadata": {
+        "sap_table": "EORD",
+        "sap_module": "MM",
+        "category": "master_data"
+      }
+    },
+    {
+      "name": "material_type",
+      "display_name": "物料类型",
+      "entity_type": "data_object",
+      "description": "SAP MM模块中的物料类型，用于物料分类",
+      "business_definition": "物料类型用于物料分类，不同类型的物料有不同的业务规则和属性",
+      "metadata": {
+        "sap_table": "T023T",
+        "sap_module": "MM",
+        "category": "master_data"
+      }
+    },
+    {
+      "name": "material_group",
+      "display_name": "物料组",
+      "entity_type": "data_object",
+      "description": "SAP MM模块中的物料组，用于物料分组管理",
+      "business_definition": "物料组用于物料分组管理，便于物料的分类统计和管理",
+      "metadata": {
+        "sap_table": "T023",
+        "sap_module": "MM",
+        "category": "master_data"
+      }
+    },
+    {
+      "name": "movement_type",
+      "display_name": "移动类型",
+      "entity_type": "data_object",
+      "description": "SAP MM模块中的移动类型，定义物料的移动方式",
+      "business_definition": "移动类型定义物料的移动方式，如101(收货)、201(消耗)、301(转移)等",
+      "metadata": {
+        "sap_table": "T156",
+        "sap_module": "MM",
+        "category": "master_data"
+      }
+    },
+    {
+      "name": "purchase_organization",
+      "display_name": "采购组织",
+      "entity_type": "data_object",
+      "description": "SAP MM模块中的采购组织，负责采购业务的组织单位",
+      "business_definition": "采购组织是负责采购业务的组织单位，负责与供应商的采购业务",
+      "metadata": {
+        "sap_table": "T024E",
+        "sap_module": "MM",
+        "category": "master_data"
+      }
+    },
+    {
+      "name": "plant",
+      "display_name": "工厂",
+      "entity_type": "data_object",
+      "description": "SAP MM模块中的工厂，物料管理的组织单位",
+      "business_definition": "工厂是物料管理的组织单位，一个工厂可以有多个库存地点",
+      "metadata": {
+        "sap_table": "T001W",
+        "sap_module": "MM",
+        "category": "master_data"
+      }
+    },
+    {
+      "name": "invoice_verification",
+      "display_name": "发票校验",
+      "entity_type": "business_process",
+      "description": "SAP MM模块中的发票校验流程",
+      "business_definition": "发票校验是采购流程的最后一步，核对供应商发票与采购订单和收货单的一致性",
+      "metadata": {
+        "sap_table": "RSEG",
+        "sap_module": "MM",
+        "category": "transaction_data"
+      }
+    },
+    {
+      "name": "goods_receipt",
+      "display_name": "收货",
+      "entity_type": "business_process",
+      "description": "SAP MM模块中的收货流程",
+      "business_definition": "收货是采购流程中的关键步骤，记录物料的实际接收情况",
+      "metadata": {
+        "sap_table": "MSEG",
+        "sap_module": "MM",
+        "category": "transaction_data"
+      }
+    }
+  ]
+}
+
+
+
+

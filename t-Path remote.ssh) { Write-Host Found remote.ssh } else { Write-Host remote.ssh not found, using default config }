@@ -1,0 +1,56 @@
+warning: in the working copy of '.gitignore', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'auth-service/Dockerfile.dev', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'auth-service/requirements.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'database/src/models/base.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'database/src/models/knowledge_models.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'database/src/models/mcp_models.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'database/src/models/user_models.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'database/src/models/workflow_models.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docker-compose.yml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'env.example', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'knowledge-base/Dockerfile.dev', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'knowledge-base/requirements.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'mcp-gateway/Dockerfile.dev', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'mcp-gateway/requirements.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'mcp-gateway/src/main.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'mcp-gateway/src/models/tool_models.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'shared_libs/requirements.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'workflow-engine/Dockerfile.dev', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'workflow-engine/requirements.txt', LF will be replaced by CRLF the next time Git touches it
+.gitignore
+DEPLOYMENT-QUICK-START.md
+DEPLOYMENT-STATUS.md
+GITHUB_UPLOAD_STEPS.md
+PLATFORM_INTRODUCTION.md
+auth-service/Dockerfile.dev
+auth-service/requirements.txt
+database/requirements.txt
+database/src/models/base.py
+database/src/models/knowledge_models.py
+database/src/models/mcp_models.py
+database/src/models/user_models.py
+database/src/models/workflow_models.py
+docker-compose.yml
+docs/README.md
+docs/api-docs/README.md
+env.example
+knowledge-base/Dockerfile.dev
+knowledge-base/requirements.txt
+mcp-gateway/Dockerfile.dev
+mcp-gateway/requirements.txt
+mcp-gateway/src/main.py
+mcp-gateway/src/models/tool_models.py
+metadata-service/Dockerfile.dev
+metadata-service/requirements.txt
+shared_libs/__init__.py
+shared_libs/requirements.txt
+workflow-engine/Dockerfile.dev
+workflow-engine/requirements.txt
+"\344\276\235\350\265\226\347\211\210\346\234\254\344\277\256\345\244\215\350\257\264\346\230\216.md"
+"\345\220\257\345\212\250\346\211\200\346\234\211\346\234\215\345\212\241.ps1"
+"\345\277\253\351\200\237\346\243\200\346\237\245\346\234\215\345\212\241.ps1"
+"\346\226\207\344\273\266\345\267\256\345\274\202\346\243\200\346\237\245\346\212\245\345\221\212.md"
+"\346\234\215\345\212\241\345\231\250\345\220\257\345\212\250\345\221\275\344\273\244-\347\256\200\346\264\201\347\211\210.sh"
+"\346\234\215\345\212\241\345\231\250\345\220\257\345\212\250\345\221\275\344\273\244-\347\272\257\346\226\207\346\234\254.txt"
+"\346\234\215\345\212\241\345\231\250\345\220\257\345\212\250\345\221\275\344\273\244.md"
+"\346\234\215\345\212\241\345\231\250\346\226\207\344\273\266\346\243\200\346\237\245\346\212\245\345\221\212.md"

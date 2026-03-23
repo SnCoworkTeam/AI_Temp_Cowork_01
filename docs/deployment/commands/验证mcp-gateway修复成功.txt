@@ -1,0 +1,47 @@
+# 验证mcp-gateway修复是否成功
+# 在服务器上执行以下命令
+
+cd /opt/enterprise-ai-platform
+
+# 1. 等待健康检查完成（约30秒）
+echo "Waiting for health check..."
+sleep 30
+
+# 2. 检查容器状态（应该是 healthy，不是 restarting）
+echo "=== Container Status ==="
+sudo docker compose ps mcp-gateway
+
+# 或者
+sudo docker ps | grep mcp-gateway
+
+# 3. 查看最新日志（应该没有LOG_LEVEL错误）
+echo ""
+echo "=== Recent Logs ==="
+sudo docker compose logs --tail=30 mcp-gateway
+
+# 4. 检查是否有LOG_LEVEL错误
+echo ""
+echo "=== Checking for LOG_LEVEL errors ==="
+sudo docker compose logs mcp-gateway | grep -i "log-level" | tail -5
+# 如果没有输出，说明没有错误
+
+# 5. 检查是否有启动成功消息
+echo ""
+echo "=== Checking for startup success ==="
+sudo docker compose logs mcp-gateway | grep -i "startup\|application\|uvicorn\|started" | tail -5
+
+# 6. 测试服务健康检查端点
+echo ""
+echo "=== Testing Health Endpoint ==="
+curl -v http://localhost:8001/api/health
+
+# 7. 测试服务根路径
+echo ""
+echo "=== Testing Root Path ==="
+curl -v http://localhost:8001/
+
+# ============================================
+# 一键验证命令
+# ============================================
+cd /opt/enterprise-ai-platform && sleep 30 && echo "=== Status ===" && sudo docker compose ps mcp-gateway && echo "" && echo "=== Recent Logs ===" && sudo docker compose logs --tail=20 mcp-gateway && echo "" && echo "=== Health Check ===" && curl -s http://localhost:8001/api/health && echo "" && echo "=== LOG_LEVEL Errors (should be empty) ===" && sudo docker compose logs mcp-gateway | grep -i "log-level" | tail -3
+

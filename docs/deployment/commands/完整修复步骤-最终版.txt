@@ -1,0 +1,69 @@
+# 完整修复步骤 - 最终版
+# 按照以下步骤操作，确保修复LOG_LEVEL问题
+
+# ============================================
+# 步骤1：在本地PowerShell上传docker-compose.yml
+# ============================================
+# 执行以下命令（在PowerShell中）：
+powershell -ExecutionPolicy Bypass -File .\上传docker-compose.yml.ps1
+
+# 或者手动执行：
+# scp -i "E:\enterprise-ai-platform\enterprise_ai_platform.pem" -o StrictHostKeyChecking=no docker-compose.yml ubuntu@43.143.139.197:/opt/enterprise-ai-platform/
+
+# ============================================
+# 步骤2：在服务器上执行修复命令
+# ============================================
+# SSH到服务器后，执行以下命令：
+
+cd /opt/enterprise-ai-platform
+
+# 2.1 确认.env文件已修复为小写
+echo "=== Checking .env file ==="
+grep LOG_LEVEL .env
+# 如果显示 LOG_LEVEL=INFO，执行：
+# sed -i 's/^LOG_LEVEL=.*$/LOG_LEVEL=info/' .env
+
+# 2.2 停止并删除mcp-gateway容器（重要：必须删除，不能只重启）
+echo ""
+echo "=== Stopping and removing mcp-gateway ==="
+sudo docker compose stop mcp-gateway
+sudo docker compose rm -f mcp-gateway
+
+# 2.3 重新创建并启动mcp-gateway（使用新的docker-compose.yml配置）
+echo ""
+echo "=== Recreating mcp-gateway with new config ==="
+sudo docker compose up -d --build mcp-gateway
+
+# 2.4 等待服务启动
+echo ""
+echo "=== Waiting for service to start ==="
+sleep 20
+
+# 2.5 检查服务状态
+echo ""
+echo "=== Service Status ==="
+sudo docker compose ps mcp-gateway
+
+# 2.6 查看日志（应该没有LOG_LEVEL错误了）
+echo ""
+echo "=== Recent Logs ==="
+sudo docker compose logs --tail=30 mcp-gateway
+
+# 2.7 测试服务
+echo ""
+echo "=== Testing Service ==="
+curl http://localhost:8001/api/health
+
+# ============================================
+# 一键执行命令（服务器上，复制整行）
+# ============================================
+cd /opt/enterprise-ai-platform && sed -i 's/^LOG_LEVEL=.*$/LOG_LEVEL=info/' .env && echo "LOG_LEVEL:" && grep LOG_LEVEL .env && sudo docker compose stop mcp-gateway && sudo docker compose rm -f mcp-gateway && sudo docker compose up -d --build mcp-gateway && sleep 20 && echo "=== Status ===" && sudo docker compose ps mcp-gateway && echo "" && echo "=== Logs ===" && sudo docker compose logs --tail=20 mcp-gateway && echo "" && echo "=== Test ===" && curl http://localhost:8001/api/health
+
+# ============================================
+# 验证修复成功
+# ============================================
+# 1. 检查容器状态应该是 "Up" 而不是 "Restarting"
+# 2. 日志中不应该有 "Invalid value for '--log-level': 'INFO'" 错误
+# 3. 应该看到 "Application startup complete" 或类似消息
+# 4. curl测试应该返回200状态码
+

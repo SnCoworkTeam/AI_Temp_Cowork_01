@@ -1,0 +1,85 @@
+# 敏感文件
+*.pem
+*.key
+*.log
+.env
+.env.local
+.env.*.local
+enterprise_ai_platform.pem
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+ENV/
+
+# Node.js
+node_modules/
+package-lock.json
+
+# IDE
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Docker镜像和临时文件
+images/
+*.tar
+*.tar.gz
+temp/
+tmp/
+
+# Next.js构建文件
+web-ui/.next/
+web-ui/out/
+
+# 日志文件
+*.log
+logs/
+
+# 排除大文件和备份文件
+backups/neo4j/**/*.db
+backups/neo4j/**/*.db.*
+*.docx
+backups/**/*.db
+backups/**/*.db.*
+
+# Excel 临时文件
+~$*.xlsx
+~$*.xls
+
+# 大文件（超过 GitHub 100MB 限制）
+*.zip
+sonarqube-*.zip
+
+# OpenCode 源码已纳入仓库（与服务器根目录一致），不再忽略
+# opencode-src/
+
+# OpenCode 导出到服务器的镜像包（由 scripts/export-opencode-for-server.* 生成）
+opencode-server-export/*.tar
+opencode-server-export/*.tar.part1
+opencode-server-export/*.tar.part2
+opencode-upload/
+
+# 行业报告自动化业务微服务本地环境文件
+project_management/business/yunying_Project01/backend/venv/
+project_management/business/yunying_Project01/backend/uploads/
+project_management/business/yunying_Project01/backend/reports/
+project_management/business/yunying_Project01/backend/data/
+
+.env
+.env.*
+*.env
+

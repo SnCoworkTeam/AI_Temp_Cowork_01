@@ -1,0 +1,125 @@
+# Snyk配置
+# 用于多语言安全扫描
+
+# 项目配置
+version: v1.22.0
+
+# 扫描配置
+scan:
+  # 扫描类型
+  types:
+    - code
+    - open-source
+    - container
+  
+  # 排除路径
+  exclude:
+    - "**/node_modules/**"
+    - "**/venv/**"
+    - "**/env/**"
+    - "**/__pycache__/**"
+    - "**/.git/**"
+    - "**/dist/**"
+    - "**/build/**"
+  
+  # 包含路径
+  include:
+    - "**/*.py"
+    - "**/*.js"
+    - "**/*.ts"
+    - "**/*.json"
+    - "**/*.yaml"
+    - "**/*.yml"
+    - "**/requirements.txt"
+    - "**/package.json"
+    - "**/Dockerfile*"
+    - "**/docker-compose*.yml"
+
+# 安全策略
+security:
+  # 严重性级别
+  severity:
+    - critical
+    - high
+    - medium
+    - low
+  
+  # 漏洞阈值
+  threshold:
+    critical: 0
+    high: 0
+    medium: 5
+    low: 10
+  
+  # 自动修复
+  auto_fix: false
+  
+  # 忽略的漏洞（需要记录原因）
+  ignore:
+    # 示例（需要根据实际情况配置）
+    # - CVE-2023-XXXXX
+    #   reason: "已确认不影响本项目，将在下个版本修复"
+    #   expires: "2024-12-31"
+
+# 报告配置
+report:
+  format:
+    - json
+    - html
+    - sarif
+  
+  output:
+    json: "dependencies/security-scan/reports/snyk-report.json"
+    html: "dependencies/security-scan/reports/snyk-report.html"
+    sarif: "dependencies/security-scan/reports/snyk-report.sarif"
+
+# 通知配置
+notifications:
+  # Slack通知（可选）
+  slack:
+    enabled: false
+    webhook_url: "${SLACK_WEBHOOK_URL}"
+  
+  # 邮件通知（可选）
+  email:
+    enabled: false
+    recipients: []
+
+# 项目映射
+projects:
+  - name: "mcp-gateway"
+    path: "mcp-gateway"
+    type: "python"
+  
+  - name: "workflow-engine"
+    path: "workflow-engine"
+    type: "python"
+  
+  - name: "auth-service"
+    path: "auth-service"
+    type: "python"
+  
+  - name: "knowledge-base"
+    path: "knowledge-base"
+    type: "python"
+  
+  - name: "web-ui"
+    path: "web-ui"
+    type: "npm"
+  
+  - name: "shared-libs"
+    path: "shared-libs"
+    type: "python"
+  
+  - name: "database"
+    path: "database"
+    type: "python"
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,12 @@
+{
+  "type": "deployment",
+  "script": "complete-sync.ps1",
+  "services": [
+    "all"
+  ],
+  "skip_data_sync": false,
+  "skip_migration": false,
+  "dry_run": false,
+  "command": "cd /workspace\n        powershell -ExecutionPolicy Bypass -File scripts/deployment/complete-sync.ps1 -RemotePath /opt/enterprise-ai-platform",
+  "timestamp": "2025-12-20T10:09:37.142232"
+}

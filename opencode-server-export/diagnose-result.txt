@@ -1,0 +1,162 @@
+==========================================
+OpenCode 启动失败诊断报告
+执行时间: Sat Feb  7 19:12:00 CST 2026
+==========================================
+
+【1. 容器运行状态】
+----------------------------
+CONTAINER ID   IMAGE                                              COMMAND                  CREATED          STATUS                          PORTS                                                           NAMES
+2e7bf3b9a67d   enterprise-ai-opencode-local-web:latest            "docker-entrypoint.s…"   52 minutes ago   Up 52 minutes (healthy)         0.0.0.0:4096->4096/tcp, :::4096->4096/tcp                       enterprise-ai-opencode
+
+【2. 容器是否真的在运行】
+----------------------------
+容器状态: running
+✓ 容器状态为 running
+启动时间: 2026-02-07T10:19:12.849111115Z
+
+【3. 容器日志（最近100行）】
+----------------------------
+opencode server listening on http://0.0.0.0:4096
+
+【4. 容器内进程】
+----------------------------
+OCI runtime exec failed: exec failed: unable to start container process: exec: "ps": executable file not found in $PATH: unknown
+
+【5. 容器内端口监听】
+----------------------------
+OCI runtime exec failed: exec failed: unable to start container process: exec: "netstat": executable file not found in $PATH: unknown
+OCI runtime exec failed: exec failed: unable to start container process: exec: "ss": executable file not found in $PATH: unknown
+
+【6. 容器内环境变量（关键配置）】
+----------------------------
+NODE_VERSION=20.20.0
+OPENCODE_LOCK_WORKSPACE=1
+OPENCODE_SERVER_PASSWORD=12345678
+OPENCODE_SERVER_USERNAME=opencode
+OPENCODE_SERVE_WEB_LOCAL=1
+OPENCODE_WEB_ROOT=/app-web
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+【7. 构建信息】
+----------------------------
+local-web-20260207-1009-root-fix
+
+【8. 验证修复代码是否存在】
+----------------------------
+检查 server.ts 是否包含 'local-web-ok':
+grep: /app-web/packages/opencode/src/server/server.ts: No such file or directory
+
+检查 server.ts 是否包含早处理中间件标记:
+grep: /app-web/packages/opencode/src/server/server.ts: No such file or directory
+
+【9. Docker Compose 配置】
+----------------------------
+# OpenCode 本地 Web 部署：不依赖 app.opencode.ai，静态资源在镜像内
+# 使用前请先加载镜像: docker load -i enterprise-ai-opencode-local-web.tar
+# 构建方式见: docs/deployment/OpenCode-本地Web构建与堡垒机上传指南.md
+
+services:
+  opencode:
+    image: enterprise-ai-opencode-local-web:latest
+    container_name: enterprise-ai-opencode
+    working_dir: /workspace
+    command: opencode serve --hostname 0.0.0.0 --port 4096
+    ports:
+      - "${OPENCODE_PORT:-4096}:4096"
+    environment:
+      - OPENCODE_SERVER_USERNAME=${OPENCODE_SERVER_USERNAME:-opencode}
+      - OPENCODE_SERVER_PASSWORD=${OPENCODE_SERVER_PASSWORD:-}
+      # 锁定工作目录为项目根，仅针对当前项目操作（见 docs/deployment/OpenCode-限定项目根目录说明.md）
+      - OPENCODE_LOCK_WORKSPACE=1
+      # 镜像内已设 OPENCODE_SERVE_WEB_LOCAL=1、OPENCODE_WEB_ROOT=/app-web，无需再配
+    volumes:
+      - ${OPENCODE_WORKSPACE:-.}:/workspace:cached
+      # 挂载宿主机 Docker socket：使 OpenCode 在对话中可执行 docker / docker compose（见 docs/deployment/OpenCode-完整服务器能力说明.md）
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+    healthcheck:
+      # 服务端开启 Basic Auth 时需带认证，否则健康检查会 401 失败
+      test: ["CMD", "sh", "-c", "curl -sf -u \"$$OPENCODE_SERVER_USERNAME:$$OPENCODE_SERVER_PASSWORD\" http://127.0.0.1:4096/global/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+networks:
+  enterprise-ai-network:
+    external: true
+    name: ${EXTERNAL_NETWORK_NAME:-enterprise-ai-platform_enterprise-ai-network}
+
+【10. 环境变量文件】
+----------------------------
+关键环境变量（脱敏）:
+OPENCODE_WORKSPACE=***
+OPENCODE_PORT=***
+OPENCODE_SERVER_USERNAME=***
+OPENCODE_SERVER_PASSWORD=***
+
+【11. 主机端口占用情况】
+----------------------------
+tcp        0      0 0.0.0.0:4096            0.0.0.0:*               LISTEN      127762/docker-proxy 
+tcp6       0      0 :::4096                 :::*                    LISTEN      127768/docker-proxy 
+
+【12. Docker 网络配置】
+----------------------------
+[]
+Error response from daemon: network opencode-server-export_default not found
+
+【13. 主机资源使用】
+----------------------------
+CPU 和内存:
+top - 19:12:01 up 114 days,  6:54,  2 users,  load average: 0.12, 0.29, 0.29
+Tasks: 261 total,   1 running, 260 sleeping,   0 stopped,   0 zombie
+%Cpu(s):  0.0 us,  1.6 sy,  0.0 ni, 98.4 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+KiB Mem : 16247560 total,   872328 free,  3735408 used, 11639824 buff/cache
+KiB Swap:  8257532 total,  8244160 free,    13372 used. 11302336 avail Mem 
+
+磁盘空间:
+Filesystem               Size  Used Avail Use% Mounted on
+/dev/mapper/centos-root  192G   57G  136G  30% /
+overlay                  192G   57G  136G  30% /var/lib/docker/overlay2/05d8a8f2f57db267ccbda1c2836c49532693ef9ae71ac5a45909efdd2b22c50b/merged
+overlay                  192G   57G  136G  30% /var/lib/docker/overlay2/804c48b852b3aa62ec014a0af2fc44f8d03975a0a38219a59bbd93c2ecdfbb10/merged
+overlay                  192G   57G  136G  30% /var/lib/docker/overlay2/662a37c53a98ae47a80f07d510c5478e8d5806ce4ead39e58b52293d888c7487/merged
+overlay                  192G   57G  136G  30% /var/lib/docker/overlay2/17348750342f75986b3617bc44801433f786fc0205deb539ba657344acf7abe5/merged
+overlay                  192G   57G  136G  30% /var/lib/docker/overlay2/f99fd23828f646e0d84cffe05597d4139c0d925a492476e8f78c8aafcc7454b0/merged
+overlay                  192G   57G  136G  30% /var/lib/docker/overlay2/21be937155d89cac18f99ec2f5744555537e563eac871bea861920765e9389b4/merged
+overlay                  192G   57G  136G  30% /var/lib/docker/overlay2/033787c5658b6d963ea67d727eda78649aafed969f65739f237cae1337fc2004/merged
+overlay                  192G   57G  136G  30% /var/lib/docker/overlay2/fd42fa8b1cb512c5da1fc3e1bccf0264895086da57d7e4809ea3511bbd077b50/merged
+overlay                  192G   57G  136G  30% /var/lib/docker/overlay2/5e1091c752175c044443f111f9077561957585cd364d28893990ed61b60d1fd3/merged
+overlay                  192G   57G  136G  30% /var/lib/docker/overlay2/d009e919a0474a4d589a1c3423c10a9bb4ffaef691abfacdaecf76b297ad56b1/merged
+overlay                  192G   57G  136G  30% /var/lib/docker/overlay2/383b0bde0e1501b4fd3cc4153a744a64d07dde3f28b5afceeff3b791606c0358/merged
+
+【14. 从主机测试容器端口】
+----------------------------
+测试 127.0.0.1:4096/local-web-root:
+* About to connect() to 127.0.0.1 port 4096 (#0)
+*   Trying 127.0.0.1...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0* Connected to 127.0.0.1 (127.0.0.1) port 4096 (#0)
+> GET /local-web-root HTTP/1.1
+> User-Agent: curl/7.29.0
+> Host: 127.0.0.1:4096
+> Accept: */*
+> 
+  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0
+测试 127.0.0.1:4096/:
+* About to connect() to 127.0.0.1 port 4096 (#0)
+*   Trying 127.0.0.1...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0* Connected to 127.0.0.1 (127.0.0.1) port 4096 (#0)
+> GET / HTTP/1.1
+> User-Agent: curl/7.29.0
+> Host: 127.0.0.1:4096
+> Accept: */*
+> 
+  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0
+==========================================
+诊断完成
+==========================================

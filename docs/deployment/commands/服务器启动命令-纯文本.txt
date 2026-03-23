@@ -1,0 +1,142 @@
+========================================
+服务器Docker服务手动启动命令
+按顺序逐个执行以下命令
+========================================
+
+# 进入项目目录
+cd /opt/enterprise-ai-platform
+
+========================================
+第一阶段：启动基础服务
+========================================
+
+# 1. 启动PostgreSQL数据库
+sudo docker compose up -d postgres
+
+# 等待15秒后检查状态
+sleep 15
+sudo docker compose ps postgres
+
+# 2. 启动Redis缓存
+sudo docker compose up -d redis
+
+# 等待10秒后检查状态
+sleep 10
+sudo docker compose ps redis
+
+========================================
+第二阶段：启动核心服务
+========================================
+
+# 3. 构建并启动MCP Gateway服务
+sudo docker compose up -d --build mcp-gateway
+
+# 等待30秒后检查状态
+sleep 30
+sudo docker compose ps mcp-gateway
+sudo docker compose logs --tail=20 mcp-gateway
+
+# 4. 构建并启动Auth Service服务
+sudo docker compose up -d --build auth-service
+
+# 等待30秒后检查状态
+sleep 30
+sudo docker compose ps auth-service
+sudo docker compose logs --tail=20 auth-service
+
+# 5. 构建并启动Knowledge Base服务
+sudo docker compose up -d --build knowledge-base
+
+# 等待60秒后检查状态（首次启动需要下载模型，可能需要更长时间）
+sleep 60
+sudo docker compose ps knowledge-base
+sudo docker compose logs --tail=20 knowledge-base
+
+# 6. 构建并启动Metadata Service服务
+sudo docker compose up -d --build metadata-service
+
+# 等待30秒后检查状态
+sleep 30
+sudo docker compose ps metadata-service
+sudo docker compose logs --tail=20 metadata-service
+
+========================================
+第三阶段：启动工作流引擎
+========================================
+
+# 7. 构建并启动Workflow Engine服务
+sudo docker compose up -d --build workflow-engine
+
+# 等待30秒后检查状态
+sleep 30
+sudo docker compose ps workflow-engine
+sudo docker compose logs --tail=20 workflow-engine
+
+========================================
+第四阶段：启动Web UI
+========================================
+
+# 8. 构建并启动Web UI服务
+sudo docker compose up -d --build web-ui
+
+# 等待60秒后检查状态（首次启动需要安装依赖，可能需要更长时间）
+sleep 60
+sudo docker compose ps web-ui
+sudo docker compose logs --tail=20 web-ui
+
+========================================
+检查所有服务状态
+========================================
+
+# 查看所有服务状态
+sudo docker compose ps
+
+# 查看所有服务日志（最后50行）
+sudo docker compose logs --tail=50
+
+# 测试服务健康检查
+curl http://localhost:8001/api/health  # MCP Gateway
+curl http://localhost:8002/api/health  # Workflow Engine
+curl http://localhost:8003/health      # Auth Service
+curl http://localhost:8004/api/health  # Knowledge Base
+curl http://localhost:8005/api/health  # Metadata Service
+curl http://localhost:3000             # Web UI
+
+========================================
+服务访问地址
+========================================
+
+MCP Gateway:      http://43.143.139.197:8001
+Workflow Engine:   http://43.143.139.197:8002
+Auth Service:      http://43.143.139.197:8003
+Knowledge Base:    http://43.143.139.197:8004
+Metadata Service:  http://43.143.139.197:8005
+Web UI:            http://43.143.139.197:3000
+PostgreSQL:        43.143.139.197:5432
+Redis:             43.143.139.197:6379
+
+========================================
+故障排查命令
+========================================
+
+# 查看特定服务的详细日志
+sudo docker compose logs <service-name>
+
+# 查看服务最后100行日志
+sudo docker compose logs --tail=100 <service-name>
+
+# 实时查看服务日志
+sudo docker compose logs -f <service-name>
+
+# 重启服务
+sudo docker compose restart <service-name>
+
+# 重新构建并启动服务
+sudo docker compose up -d --build --force-recreate <service-name>
+
+# 停止所有服务
+sudo docker compose down
+
+# 停止并删除所有容器和卷（谨慎使用）
+sudo docker compose down -v
+

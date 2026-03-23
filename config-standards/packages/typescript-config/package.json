@@ -1,0 +1,11 @@
+{
+  "name": "@enterprise-ai/typescript-config",
+  "version": "1.0.0",
+  "description": "统一TypeScript配置包",
+  "main": "tsconfig.base.json",
+  "keywords": [
+    "typescript",
+    "tsconfig"
+  ]
+}
+

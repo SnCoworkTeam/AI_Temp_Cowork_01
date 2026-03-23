@@ -1,0 +1,41 @@
+# 检查PYTHONPATH是否已更新
+# 在服务器上执行
+
+cd /opt/enterprise-ai-platform
+
+# 1. 检查docker-compose.yml中的PYTHONPATH
+echo "=== PYTHONPATH in docker-compose.yml ==="
+grep "PYTHONPATH" docker-compose.yml
+
+# 2. 检查容器内的PYTHONPATH环境变量
+echo ""
+echo "=== PYTHONPATH in container ==="
+sudo docker exec enterprise-ai-mcp-gateway env | grep PYTHONPATH
+
+# 3. 检查容器内的Python sys.path
+echo ""
+echo "=== Python sys.path in container ==="
+sudo docker exec enterprise-ai-mcp-gateway python -c "import sys; print('\n'.join(sys.path))"
+
+# 4. 测试导入（使用新的PYTHONPATH）
+echo ""
+echo "=== Testing import with current PYTHONPATH ==="
+sudo docker exec enterprise-ai-mcp-gateway python << 'EOF'
+import sys
+print("Current sys.path:")
+for p in sys.path[:5]:
+    print(f"  {p}")
+
+print("\nTesting shared_libs import...")
+try:
+    import shared_libs
+    print("SUCCESS: shared_libs imported")
+    print(f"Location: {shared_libs.__file__ if hasattr(shared_libs, '__file__') else 'N/A'}")
+except Exception as e:
+    print(f"FAILED: {e}")
+    import traceback
+    traceback.print_exc()
+EOF
+
+# 如果PYTHONPATH还是旧的，需要重新创建容器
+

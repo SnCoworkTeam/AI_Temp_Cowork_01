@@ -1,0 +1,91 @@
+
+================================================================================
+统一企业语义系统综合测试
+================================================================================
+
+### 1. 知识库功能测试 ###
+
+✓ [knowledge_base] 健康检查
+  状态码: 200
+✗ [knowledge_base] 创建文档
+  文档ID: N/A
+✗ [knowledge_base] 文档搜索
+  查询: '企业语义', 找到 0 个结果
+✗ [knowledge_base] 知识图谱查询
+  节点数: 0, 关系数: 0
+
+### 2. 元数据服务测试 ###
+
+✓ [metadata_service] 健康检查
+  状态码: 200
+✗ [metadata_service] 列出数据资产
+  'list' object has no attribute 'get'
+✗ [metadata_service] 元数据搜索
+  查询: 'SAP', 找到 0 个结果
+✗ [metadata_service] 本体查询
+  业务术语数量: 0
+✗ [metadata_service] 实体注册中心
+  实体数量: 0
+
+### 3. 语义搜索和推理测试 ###
+
+✓ [semantic_search] 语义搜索
+  查询: '采购订单流程', 找到 0 个结果
+✗ [semantic_search] 智能推荐
+  推荐数量: 0
+
+### 4. 系统集成测试 ###
+
+✗ [integration] 向量协调服务
+  HTTPConnectionPool(host='43.143.139.197', port=8020): Max retries exceeded with url: /api/health (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000002BB296AC270>, 'Connection to 43.143.139.197 timed out. (connect timeout=5)'))
+
+=== 跨服务搜索测试: '采购' ===
+✗ [knowledge_base] 文档搜索
+  查询: '采购', 找到 0 个结果
+✗ [metadata_service] 元数据搜索
+  查询: '采购', 找到 0 个结果
+✗ [integration] 跨服务搜索
+  知识库结果: 0个, 元数据结果: 0个
+
+================================================================================
+测试报告
+================================================================================
+
+### knowledge_base ###
+通过: 1, 失败: 4
+
+失败的测试:
+  - 创建文档: 文档ID: N/A
+  - 文档搜索: 查询: '企业语义', 找到 0 个结果
+  - 知识图谱查询: 节点数: 0, 关系数: 0
+  - 文档搜索: 查询: '采购', 找到 0 个结果
+
+### metadata_service ###
+通过: 1, 失败: 5
+
+失败的测试:
+  - 列出数据资产: 'list' object has no attribute 'get'
+  - 元数据搜索: 查询: 'SAP', 找到 0 个结果
+  - 本体查询: 业务术语数量: 0
+  - 实体注册中心: 实体数量: 0
+  - 元数据搜索: 查询: '采购', 找到 0 个结果
+
+### semantic_search ###
+通过: 1, 失败: 1
+
+失败的测试:
+  - 智能推荐: 推荐数量: 0
+
+### integration ###
+通过: 0, 失败: 2
+
+失败的测试:
+  - 向量协调服务: HTTPConnectionPool(host='43.143.139.197', port=8020): Max retries exceeded with url: /api/health (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000002BB296AC270>, 'Connection to 43.143.139.197 timed out. (connect timeout=5)'))
+  - 跨服务搜索: 知识库结果: 0个, 元数据结果: 0个
+
+================================================================================
+总计: 通过 3, 失败 12
+成功率: 20.0%
+================================================================================
+
+测试报告已保存到: semantic_system_test_report.json

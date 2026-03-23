@@ -1,0 +1,43 @@
+# SonarQube项目配置示例
+# 复制此文件为 sonar-project.properties 并填写实际值
+
+# 项目基本信息
+sonar.projectKey=enterprise-ai-platform
+sonar.projectName=Enterprise AI Platform
+sonar.projectVersion=1.0
+
+# 源代码路径
+sonar.sources=.
+sonar.sourceEncoding=UTF-8
+
+# 排除文件和目录
+sonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/__pycache__/**,**/*.pyc,**/venv/**,**/env/**,**/.git/**,**/htmlcov/**,**/mypy-report/**,**/coverage/**,**/logs/**,**/backups/**,**/*.log,**/migrations/**,**/alembic/**,**/.pytest_cache/**,**/__pycache__/**,**/*.egg-info/**,**/target/**,**/.idea/**,**/.vscode/**
+
+# 测试路径
+sonar.tests=.
+sonar.test.inclusions=**/test_*.py,**/tests/**,**/*_test.py,**/test_*.js,**/test_*.ts,**/*.test.js,**/*.test.ts
+
+# Python配置
+sonar.python.version=3.10,3.11
+
+# 代码覆盖率报告路径（如果存在）
+sonar.python.coverage.reportPaths=coverage.json,htmlcov/coverage.xml,coverage.xml
+
+# JavaScript/TypeScript配置（如果使用）
+sonar.javascript.lcov.reportPaths=coverage/lcov.info
+sonar.typescript.lcov.reportPaths=coverage/lcov.info
+
+# SonarQube服务器配置
+sonar.host.url=http://124.220.181.231:9000
+sonar.login=YOUR_SONAR_TOKEN_HERE
+
+# 分析参数
+sonar.scanner.force-deprecated-java-version=true
+
+# 语言配置
+sonar.language=py,js,ts
+
+# 其他配置
+sonar.scm.provider=git
+sonar.scm.forceReloadAll=true
+

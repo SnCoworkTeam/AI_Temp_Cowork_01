@@ -1,0 +1,44 @@
+# OpenCode 本地 Web 部署：不依赖 app.opencode.ai，静态资源在镜像内
+# 使用前请先加载镜像: docker load -i enterprise-ai-opencode-local-web.tar
+# 构建方式见: docs/deployment/OpenCode-本地Web构建与堡垒机上传指南.md
+
+services:
+  opencode:
+    image: enterprise-ai-opencode-local-web:latest
+    container_name: enterprise-ai-opencode
+    working_dir: /workspace
+    command: opencode serve --hostname 0.0.0.0 --port 4096
+    ports:
+      - "${OPENCODE_PORT:-4096}:4096"
+    environment:
+      - OPENCODE_SERVER_USERNAME=${OPENCODE_SERVER_USERNAME:-opencode}
+      - OPENCODE_SERVER_PASSWORD=${OPENCODE_SERVER_PASSWORD:-}
+      # 锁定工作目录为项目根，仅针对当前项目操作（见 docs/deployment/OpenCode-限定项目根目录说明.md）
+      - OPENCODE_LOCK_WORKSPACE=1
+      # 镜像内已设 OPENCODE_SERVE_WEB_LOCAL=1、OPENCODE_WEB_ROOT=/app-web，无需再配
+      # 持久化：模型列表与 API Key 存于此处，不设则重启后供应商/DeepSeek 等会丢失
+      - HOME=/opencode-home
+    volumes:
+      - ${OPENCODE_WORKSPACE:-.}:/workspace:cached
+      # 持久化数据目录（auth.json、models.json 等），避免重启后模型与 API Key 丢失
+      - opencode-data:/opencode-home
+      # 挂载宿主机 Docker socket：使 OpenCode 在对话中可执行 docker / docker compose（见 docs/deployment/OpenCode-完整服务器能力说明.md）
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+    healthcheck:
+      # 服务端开启 Basic Auth 时需带认证，否则健康检查会 401 失败
+      test: ["CMD", "sh", "-c", "curl -sf -u \"$$OPENCODE_SERVER_USERNAME:$$OPENCODE_SERVER_PASSWORD\" http://127.0.0.1:4096/global/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+networks:
+  enterprise-ai-network:
+    external: true
+    name: ${EXTERNAL_NETWORK_NAME:-enterprise-ai-platform_enterprise-ai-network}
+
+volumes:
+  opencode-data:

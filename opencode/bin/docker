@@ -1,0 +1,93 @@
+#!/bin/sh
+# Minimal Docker CLI shim for OpenCode container (logs only).
+set -eu
+
+cmd="${1:-}"
+shift || true
+
+if [ "$cmd" != "logs" ]; then
+  echo "docker shim: only 'logs' is supported in this container." >&2
+  exit 2
+fi
+
+tail_opt=""
+since_opt=""
+timestamps_opt=0
+follow_opt=0
+container=""
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --tail)
+      tail_opt="${2:-}"
+      shift 2
+      ;;
+    --since)
+      since_opt="${2:-}"
+      shift 2
+      ;;
+    --timestamps|-t)
+      timestamps_opt=1
+      shift
+      ;;
+    --follow|-f)
+      follow_opt=1
+      shift
+      ;;
+    --)
+      shift
+      break
+      ;;
+    -*)
+      # Ignore unsupported flags for now
+      shift
+      ;;
+    *)
+      container="$1"
+      shift
+      ;;
+  esac
+done
+
+if [ -z "$container" ]; then
+  echo "docker shim: container name is required." >&2
+  exit 2
+fi
+
+since_ts=""
+if [ -n "$since_opt" ]; then
+  if echo "$since_opt" | grep -Eq '^[0-9]+[smhd]$'; then
+    num="$(echo "$since_opt" | sed 's/[smhd]$//')"
+    unit="$(echo "$since_opt" | sed 's/^[0-9]*//')"
+    case "$unit" in
+      s) seconds="$num" ;;
+      m) seconds="$((num * 60))" ;;
+      h) seconds="$((num * 3600))" ;;
+      d) seconds="$((num * 86400))" ;;
+      *) seconds="" ;;
+    esac
+    if [ -n "${seconds:-}" ]; then
+      since_ts="$(date -d "-${seconds} seconds" +%s 2>/dev/null || true)"
+    fi
+  else
+    since_ts="$(date -d "$since_opt" +%s 2>/dev/null || true)"
+  fi
+fi
+
+query="stdout=1&stderr=1"
+if [ -n "$tail_opt" ]; then
+  query="${query}&tail=${tail_opt}"
+fi
+if [ -n "$since_ts" ]; then
+  query="${query}&since=${since_ts}"
+fi
+if [ "$timestamps_opt" -eq 1 ]; then
+  query="${query}&timestamps=1"
+fi
+if [ "$follow_opt" -eq 1 ]; then
+  query="${query}&follow=1"
+fi
+
+curl --silent --show-error --no-buffer \
+  --unix-socket /var/run/docker.sock \
+  "http://localhost/containers/${container}/logs?${query}"

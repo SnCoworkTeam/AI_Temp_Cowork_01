@@ -1,0 +1,49 @@
+# 排查mcp-gateway健康检查失败
+# 在服务器上执行以下命令
+
+cd /opt/enterprise-ai-platform
+
+# 1. 查看完整日志（最近50行）
+echo "=== Full Recent Logs ==="
+sudo docker compose logs --tail=50 mcp-gateway
+
+# 2. 查看错误日志
+echo ""
+echo "=== Error Logs ==="
+sudo docker compose logs mcp-gateway | grep -i "error\|exception\|traceback\|failed" | tail -20
+
+# 3. 检查是否有LOG_LEVEL错误（应该没有了）
+echo ""
+echo "=== LOG_LEVEL Errors (should be empty) ==="
+sudo docker compose logs mcp-gateway | grep -i "log-level" | tail -5
+
+# 4. 检查应用是否启动
+echo ""
+echo "=== Startup Messages ==="
+sudo docker compose logs mcp-gateway | grep -i "start\|uvicorn\|application\|running" | tail -10
+
+# 5. 进入容器检查
+echo ""
+echo "=== Container Internal Check ==="
+sudo docker exec enterprise-ai-mcp-gateway ps aux
+
+# 6. 检查端口是否监听
+echo ""
+echo "=== Port Check ==="
+sudo docker exec enterprise-ai-mcp-gateway netstat -tlnp 2>/dev/null || sudo docker exec enterprise-ai-mcp-gateway ss -tlnp
+
+# 7. 手动测试健康检查端点
+echo ""
+echo "=== Manual Health Check ==="
+sudo docker exec enterprise-ai-mcp-gateway curl -f http://localhost:8001/api/health || echo "Health check failed"
+
+# 8. 检查环境变量
+echo ""
+echo "=== Environment Variables ==="
+sudo docker exec enterprise-ai-mcp-gateway env | grep -E "LOG_LEVEL|PYTHON|DB_|REDIS"
+
+# ============================================
+# 一键排查命令
+# ============================================
+cd /opt/enterprise-ai-platform && echo "=== Recent Logs ===" && sudo docker compose logs --tail=30 mcp-gateway && echo "" && echo "=== Errors ===" && sudo docker compose logs mcp-gateway | grep -i "error\|exception" | tail -10 && echo "" && echo "=== Port Check ===" && sudo docker exec enterprise-ai-mcp-gateway ss -tlnp 2>/dev/null || echo "ss not available" && echo "" && echo "=== Health Check Test ===" && sudo docker exec enterprise-ai-mcp-gateway curl -f http://localhost:8001/api/health 2>&1 || echo "Health endpoint not responding"
+

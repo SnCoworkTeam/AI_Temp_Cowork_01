@@ -1,0 +1,182 @@
+name: "标准采购流程"
+id: "workflow:standard_procurement"
+description: "标准采购订单创建流程，包括需求验证、预算检查、订单创建和确认通知"
+version: "1.0.0"
+enabled: true
+
+# 工作流触发器
+triggers:
+  - type: "intent"
+    conditions:
+      - intent: "创建采购订单"
+      - business_domain: "procurement"
+    description: "用户意图为创建采购订单时触发"
+
+# 工作流步骤
+steps:
+  # 步骤1: 验证需求
+  - step_id: "validate_requirement"
+    name: "验证采购需求"
+    activity_id: "activity:procurement:validate"
+    component_id: "component:validation:po_data"
+    description: "验证供应商、物料、数量等信息的完整性和有效性"
+    
+    dependencies: []
+    
+    actions:
+      - action: "validate_supplier"
+        parameters:
+          supplier_code: "${supplier_code}"
+          check_active: true
+      
+      - action: "validate_material"
+        parameters:
+          material_code: "${material_code}"
+          check_available: true
+      
+      - action: "validate_quantity"
+        parameters:
+          quantity: "${quantity}"
+          min_quantity: 1
+    
+    outputs:
+      - supplier_valid
+      - material_valid
+      - quantity_valid
+    
+    conditions:
+      - if: "supplier_valid == true && material_valid == true && quantity_valid == true"
+        then: "proceed_to_budget_check"
+      - else: "request_missing_info"
+    
+    timeout: 30
+    on_error:
+      action: "notify_error"
+      retry: false
+
+  # 步骤2: 预算检查
+  - step_id: "check_budget"
+    name: "检查预算"
+    activity_id: "activity:finance:budget_check"
+    component_id: "component:finance:budget_validator"
+    description: "检查采购金额是否在预算范围内，是否需要审批"
+    
+    dependencies:
+      - validate_requirement
+    
+    actions:
+      - action: "calculate_total_amount"
+        parameters:
+          unit_price: "${unit_price}"
+          quantity: "${quantity}"
+      
+      - action: "check_budget_limit"
+        parameters:
+          amount: "${total_amount}"
+          auto_approval_limit: 50000
+    
+    outputs:
+      - total_amount
+      - requires_approval
+      - budget_available
+    
+    conditions:
+      - if: "total_amount < 50000 && budget_available == true"
+        then: "proceed_to_create_po"
+      - elif: "total_amount >= 50000 && budget_available == true"
+        then: "route_to_approval"
+      - else: "budget_insufficient"
+    
+    timeout: 20
+    on_error:
+      action: "notify_error"
+      retry: false
+
+  # 步骤3: 创建采购订单
+  - step_id: "create_po"
+    name: "创建采购订单"
+    activity_id: "activity:procurement:create_po"
+    component_id: "component:sap:create_po"
+    description: "在SAP系统中创建采购订单"
+    
+    dependencies:
+      - validate_requirement
+      - check_budget
+    
+    actions:
+      - action: "create_purchase_order"
+        parameters:
+          supplier_code: "${supplier_code}"
+          material_code: "${material_code}"
+          quantity: "${quantity}"
+          delivery_date: "${delivery_date}"
+          unit_price: "${unit_price}"
+          purchase_org: "${purchase_org}"
+    
+    outputs:
+      - po_number
+      - po_status
+      - net_amount
+    
+    conditions:
+      - if: "po_status == 'created'"
+        then: "proceed_to_notify"
+      - else: "handle_creation_error"
+    
+    timeout: 60
+    on_error:
+      action: "notify_error"
+      retry: true
+      max_retries: 2
+
+  # 步骤4: 发送确认通知
+  - step_id: "send_confirmation"
+    name: "发送确认通知"
+    activity_id: "activity:procurement:notify"
+    component_id: "component:email:send_po"
+    description: "向采购员和供应商发送订单确认通知"
+    
+    dependencies:
+      - create_po
+    
+    actions:
+      - action: "send_email"
+        parameters:
+          to: ["purchaser@company.com", "${supplier_email}"]
+          subject: "采购订单创建确认 - ${po_number}"
+          template: "po_creation_confirmation"
+          data:
+            po_number: "${po_number}"
+            supplier_name: "${supplier_name}"
+            material_name: "${material_name}"
+            quantity: "${quantity}"
+            total_amount: "${net_amount}"
+    
+    outputs:
+      - email_sent
+      - notification_status
+    
+    conditions:
+      - if: "email_sent == true"
+        then: "workflow_complete"
+      - else: "log_notification_failure"
+    
+    timeout: 30
+    on_error:
+      action: "log_error"
+      retry: false
+
+# 工作流输出
+outputs:
+  - po_number
+  - po_status
+  - net_amount
+  - workflow_status
+
+# 错误处理
+error_handling:
+  default_action: "notify_admin"
+  retry_policy:
+    max_retries: 3
+    retry_delay: 5
+

@@ -1,0 +1,18 @@
+# 质量保障报告和临时文件
+reports/
+*.pyc
+__pycache__/
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+*.json.bak
+
+
+
+
+
+
+
+
+

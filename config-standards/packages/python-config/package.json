@@ -1,0 +1,14 @@
+{
+  "name": "@enterprise-ai/python-config",
+  "version": "1.0.0",
+  "description": "统一Python代码质量配置包",
+  "keywords": [
+    "python",
+    "black",
+    "isort",
+    "ruff",
+    "mypy",
+    "pylint"
+  ]
+}
+

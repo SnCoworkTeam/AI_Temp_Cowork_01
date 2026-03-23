@@ -1,0 +1,84 @@
+{
+  "timestamp": "2025-12-05T14:59:25.804716",
+  "summary": {
+    "total_passed": 3,
+    "total_failed": 12,
+    "success_rate": "20.0%"
+  },
+  "details": {
+    "knowledge_base": {
+      "passed": [
+        "健康检查"
+      ],
+      "failed": [
+        {
+          "test": "创建文档",
+          "message": "文档ID: N/A"
+        },
+        {
+          "test": "文档搜索",
+          "message": "查询: '企业语义', 找到 0 个结果"
+        },
+        {
+          "test": "知识图谱查询",
+          "message": "节点数: 0, 关系数: 0"
+        },
+        {
+          "test": "文档搜索",
+          "message": "查询: '采购', 找到 0 个结果"
+        }
+      ]
+    },
+    "metadata_service": {
+      "passed": [
+        "健康检查"
+      ],
+      "failed": [
+        {
+          "test": "列出数据资产",
+          "message": "'list' object has no attribute 'get'"
+        },
+        {
+          "test": "元数据搜索",
+          "message": "查询: 'SAP', 找到 0 个结果"
+        },
+        {
+          "test": "本体查询",
+          "message": "业务术语数量: 0"
+        },
+        {
+          "test": "实体注册中心",
+          "message": "实体数量: 0"
+        },
+        {
+          "test": "元数据搜索",
+          "message": "查询: '采购', 找到 0 个结果"
+        }
+      ]
+    },
+    "semantic_search": {
+      "passed": [
+        "语义搜索"
+      ],
+      "failed": [
+        {
+          "test": "智能推荐",
+          "message": "推荐数量: 0"
+        }
+      ]
+    },
+    "integration": {
+      "passed": [],
+      "failed": [
+        {
+          "test": "向量协调服务",
+          "message": "HTTPConnectionPool(host='43.143.139.197', port=8020): Max retries exceeded with url: /api/health (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000002BB296AC270>, 'Connection to 43.143.139.197 timed out. (connect timeout=5)'))"
+        },
+        {
+          "test": "跨服务搜索",
+          "message": "知识库结果: 0个, 元数据结果: 0个"
+        }
+      ]
+    }
+  }
+}

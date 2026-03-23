@@ -1,0 +1,49 @@
+# 完整修复流程
+# 按照以下步骤操作
+
+# ============================================
+# 第一部分：在本地执行上传脚本
+# ============================================
+# 在PowerShell中执行：
+powershell -ExecutionPolicy Bypass -File .\上传修复文件到服务器.ps1
+
+# 或者使用单行命令逐个上传（见"上传修复文件-单行命令.txt"）
+
+# ============================================
+# 第二部分：在服务器上执行修复命令
+# ============================================
+# SSH到服务器后执行以下命令：
+
+cd /opt/enterprise-ai-platform
+
+# 1. 修复.env文件中的LOG_LEVEL
+sed -i 's/^LOG_LEVEL=.*$/LOG_LEVEL=info/' .env
+grep LOG_LEVEL .env
+
+# 2. 停止并删除mcp-gateway容器
+sudo docker compose stop mcp-gateway
+sudo docker compose rm -f mcp-gateway
+
+# 3. 停止redis-commander（如果存在）
+sudo docker stop enterprise-ai-redis-commander 2>/dev/null || echo "redis-commander not running"
+
+# 4. 启动所有服务
+sudo docker compose up -d postgres redis redis-commander mcp-gateway
+
+# 5. 等待服务启动
+sleep 25
+
+# 6. 检查状态
+sudo docker compose ps
+
+# 7. 查看mcp-gateway日志
+sudo docker compose logs --tail=30 mcp-gateway
+
+# 8. 测试服务
+curl http://localhost:8001/api/health
+
+# ============================================
+# 一键执行（服务器上）
+# ============================================
+sed -i 's/^LOG_LEVEL=.*$/LOG_LEVEL=info/' .env && sudo docker compose stop mcp-gateway && sudo docker compose rm -f mcp-gateway && sudo docker stop enterprise-ai-redis-commander 2>/dev/null; sudo docker compose up -d postgres redis redis-commander mcp-gateway && sleep 25 && sudo docker compose ps && echo "" && curl http://localhost:8001/api/health
+

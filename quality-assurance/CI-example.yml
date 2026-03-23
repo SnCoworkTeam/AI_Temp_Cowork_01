@@ -1,0 +1,80 @@
+# GitHub Actions CI/CD 配置示例
+# 放在 .github/workflows/quality-assurance.yml
+
+name: Quality Assurance
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  quality-check:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11']
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r quality-assurance/requirements.txt
+    
+    - name: Run static analysis
+      run: |
+        python3 quality-assurance/code-analysis/static-analysis/analyze.py || true
+    
+    - name: Run dependency analysis
+      run: |
+        python3 quality-assurance/code-analysis/dependency-analysis/analyze.py || true
+    
+    - name: Run security scan
+      run: |
+        python3 quality-assurance/code-analysis/security-scan/scan.py || true
+    
+    - name: Run tests with coverage
+      run: |
+        pytest --cov=. --cov-report=json --cov-report=html --cov-report=term
+    
+    - name: Collect coverage
+      run: |
+        python3 quality-assurance/quality-metrics/code-coverage/collect.py || true
+    
+    - name: Check quality gates
+      run: |
+        python3 quality-assurance/quality-metrics/quality-gate.py
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./coverage.json
+        fail_ci_if_error: false
+    
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results-${{ matrix.python-version }}
+        path: |
+          quality-assurance/reports/
+          htmlcov/
+
+
+
+
+
+
+
+
+

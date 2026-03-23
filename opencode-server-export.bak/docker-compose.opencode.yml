@@ -1,0 +1,38 @@
+# OpenCode 独立部署 - 仅本服务，用于上传到内网服务器（无需在服务器构建）
+# 使用前请先加载镜像: docker load -i enterprise-ai-opencode.tar
+# 启动: OPENCODE_WORKSPACE=/opt/enterprise-ai-platform docker compose -f docker-compose.opencode.yml up -d
+# 参考: docs/deployment/OpenCode同机部署实施方案.md
+
+services:
+  opencode:
+    image: enterprise-ai-opencode:latest
+    container_name: enterprise-ai-opencode
+    working_dir: /workspace
+    # 页面版：opencode web，绑定 0.0.0.0 以便外网访问
+    command: opencode web --hostname 0.0.0.0 --port 4096
+    tty: true
+    stdin_open: true
+    ports:
+      - "${OPENCODE_PORT:-4096}:4096"
+    environment:
+      - OPENCODE_SERVER_USERNAME=${OPENCODE_SERVER_USERNAME:-opencode}
+      - OPENCODE_SERVER_PASSWORD=${OPENCODE_SERVER_PASSWORD:-}
+      - CI=1
+      - FORCE_COLOR=0
+    volumes:
+      - ${OPENCODE_WORKSPACE:-.}:/workspace:cached
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:4096/global/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+networks:
+  enterprise-ai-network:
+    external: true
+    # 与主 compose 创建的网络一致（通常为 项目名_enterprise-ai-network）
+    name: enterprise-ai-platform_enterprise-ai-network

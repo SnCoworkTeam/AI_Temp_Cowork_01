@@ -1,0 +1,82 @@
+[
+  {
+    "id": "entity:procurement:purchase_order",
+    "name": "采购订单",
+    "description": "采购订单是采购部门向供应商发出的正式采购请求",
+    "entity_type": "document",
+    "business_domain": "procurement",
+    "attributes": [
+      "订单号",
+      "供应商",
+      "物料",
+      "数量",
+      "价格",
+      "交货日期",
+      "状态"
+    ],
+    "source_type": "document",
+    "source_id": "sap_mm_manual"
+  },
+  {
+    "id": "entity:procurement:supplier",
+    "name": "供应商",
+    "description": "提供物料或服务的供应商信息",
+    "entity_type": "master_data",
+    "business_domain": "procurement",
+    "attributes": [
+      "供应商编码",
+      "供应商名称",
+      "联系方式",
+      "资质信息",
+      "绩效评级"
+    ],
+    "source_type": "document",
+    "source_id": "supplier_master"
+  },
+  {
+    "id": "entity:procurement:material",
+    "name": "物料",
+    "description": "采购的物料主数据信息",
+    "entity_type": "master_data",
+    "business_domain": "procurement",
+    "attributes": [
+      "物料编码",
+      "物料名称",
+      "规格",
+      "单位",
+      "价格"
+    ],
+    "source_type": "document",
+    "source_id": "material_master"
+  },
+  {
+    "id": "entity:procurement:department",
+    "name": "采购部门",
+    "description": "负责采购业务的部门",
+    "entity_type": "organization",
+    "business_domain": "procurement",
+    "attributes": [
+      "部门编码",
+      "部门名称",
+      "负责人",
+      "职责范围"
+    ],
+    "source_type": "document",
+    "source_id": "org_structure"
+  },
+  {
+    "id": "entity:procurement:approval_workflow",
+    "name": "审批流程",
+    "description": "采购订单的审批流程定义",
+    "entity_type": "process",
+    "business_domain": "procurement",
+    "attributes": [
+      "流程名称",
+      "审批节点",
+      "审批人",
+      "审批条件"
+    ],
+    "source_type": "document",
+    "source_id": "workflow_definition"
+  }
+]
