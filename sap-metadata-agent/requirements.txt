@@ -1,0 +1,23 @@
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+httpx==0.25.2
+sqlalchemy==2.0.23
+hdbcli==2.19.0  # SAP HANA数据库驱动
+pyodbc==5.0.1   # SQL Server数据库驱动（用于SAP on SQL Server）
+python-dotenv==1.0.0
+asyncio==3.4.3
+aiofiles==23.2.1
+tenacity==8.2.3  # 重试机制
+
+# 元数据服务集成
+luminaos-common  # 共享库
+
+# LLM集成（用于语义生成）
+openai==1.3.0  # 或其他LLM客户端
+
+# 向量数据库（用于语义索引）
+chromadb==0.4.18  # 或使用knowledge-base服务
+
+

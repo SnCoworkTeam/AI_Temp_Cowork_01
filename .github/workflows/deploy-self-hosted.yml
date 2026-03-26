@@ -1,0 +1,139 @@
+name: 🚀 自托管 Runner 自动部署
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    # 移除 paths-ignore，允许所有推送触发工作流
+    # paths-ignore:
+    #   - '**.md'
+    #   - '.gitignore'
+    #   - 'README.md'
+    #   - 'docs/**'
+  workflow_dispatch:
+
+env:
+  SERVER_HOST: ${{ secrets.SERVER_HOST }}
+  SERVER_USER: ${{ secrets.SERVER_USER }}
+
+jobs:
+  deploy:
+    name: 使用自托管 Runner 部署
+    runs-on: self-hosted  # 使用自托管 Runner，完全免费
+    timeout-minutes: 30
+    
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 检查当前目录
+        run: |
+          echo "当前目录: $(pwd)"
+          echo "工作目录: ${{ github.workspace }}"
+          ls -la
+
+      - name: 📥 拉取最新代码
+        run: |
+          cd /opt/enterprise-ai-platform
+          git fetch origin main || git fetch origin master
+          git reset --hard origin/main || git reset --hard origin/master
+          echo "✅ 代码已更新"
+          echo "当前提交: $(git rev-parse --short HEAD)"
+
+      - name: 🗄️ 运行数据库迁移
+        run: |
+          cd /opt/enterprise-ai-platform
+          if docker-compose ps api-gateway 2>/dev/null | grep -q "Up"; then
+            echo "运行数据库迁移..."
+            docker-compose exec -T api-gateway alembic upgrade head || echo "⚠️ 迁移失败，继续部署"
+          else
+            echo "⚠️ api-gateway 未运行，跳过数据库迁移"
+          fi
+
+      - name: 💾 备份当前容器状态
+        run: |
+          cd /opt/enterprise-ai-platform
+          BACKUP_DIR="/opt/enterprise-ai-platform/backups"
+          mkdir -p "$BACKUP_DIR"
+          BACKUP_FILE="$BACKUP_DIR/backup_$(date +%Y%m%d_%H%M%S).json"
+          docker-compose ps --format json > "$BACKUP_FILE" 2>/dev/null || true
+          echo "✅ 备份完成: $BACKUP_FILE"
+
+      - name: 🛑 停止旧版本服务
+        run: |
+          cd /opt/enterprise-ai-platform
+          echo "停止旧版本服务..."
+          docker-compose down --timeout 30 || echo "⚠️ 停止服务时出现警告，继续"
+          echo "✅ 旧版本已停止"
+
+      - name: 🔨 构建并启动新版本
+        run: |
+          cd /opt/enterprise-ai-platform
+          echo "构建 Docker 镜像..."
+          docker-compose build --parallel || {
+            echo "❌ 构建失败"
+            exit 1
+          }
+          
+          echo "启动服务..."
+          docker-compose up -d || {
+            echo "❌ 启动失败"
+            exit 1
+          }
+          echo "✅ 新版本已启动"
+
+      - name: ⏳ 等待服务就绪
+        run: |
+          echo "等待服务启动..."
+          sleep 30
+
+      - name: 🏥 健康检查
+        run: |
+          MAX_RETRIES=20
+          RETRY_COUNT=0
+          HEALTH_CHECK_PASSED=false
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            if curl -f -s http://localhost:8080/health > /dev/null 2>&1; then
+              echo "✅ API Gateway 健康检查通过"
+              HEALTH_CHECK_PASSED=true
+              break
+            fi
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            echo "   等待中... ($RETRY_COUNT/$MAX_RETRIES)"
+            sleep 5
+          done
+          
+          if [ "$HEALTH_CHECK_PASSED" != "true" ]; then
+            echo "❌ 健康检查失败"
+            echo ""
+            echo "服务状态:"
+            cd /opt/enterprise-ai-platform
+            docker-compose ps
+            echo ""
+            echo "API Gateway 日志（最后50行）:"
+            docker-compose logs --tail=50 api-gateway || true
+            exit 1
+          fi
+
+      - name: 📊 显示部署结果
+        run: |
+          cd /opt/enterprise-ai-platform
+          echo ""
+          echo "=========================================="
+          echo "✅ 自动部署完成！"
+          echo "=========================================="
+          echo "服务状态:"
+          docker-compose ps
+          echo ""
+          echo "访问地址:"
+          echo "  - API Gateway: http://43.143.139.197:8080"
+          echo "  - Web UI: http://43.143.139.197:3000"
+          echo ""
+          echo "部署时间: $(date)"
+          echo "Git 提交: $(git rev-parse --short HEAD)"
+          echo "=========================================="
+

@@ -1,0 +1,39 @@
+# 检查并修复shared_libs导入问题
+# 在服务器上执行以下命令
+
+cd /opt/enterprise-ai-platform
+
+# 1. 检查shared_libs目录是否存在
+echo "=== Checking shared_libs directory ==="
+ls -la shared_libs/ 2>&1
+
+# 2. 检查shared_libs目录结构
+echo ""
+echo "=== Checking shared_libs structure ==="
+find shared_libs -name "__init__.py" -o -name "*.py" | head -20
+
+# 3. 检查容器内的挂载
+echo ""
+echo "=== Checking container mounts ==="
+sudo docker exec enterprise-ai-mcp-gateway ls -la /shared_libs 2>&1
+
+# 4. 检查容器内的PYTHONPATH
+echo ""
+echo "=== Checking PYTHONPATH in container ==="
+sudo docker exec enterprise-ai-mcp-gateway env | grep PYTHONPATH
+
+# 5. 检查容器内的Python路径
+echo ""
+echo "=== Checking Python sys.path in container ==="
+sudo docker exec enterprise-ai-mcp-gateway python -c "import sys; print('\n'.join(sys.path))"
+
+# 6. 测试导入shared_libs
+echo ""
+echo "=== Testing shared_libs import ==="
+sudo docker exec enterprise-ai-mcp-gateway python -c "import sys; sys.path.insert(0, '/shared_libs'); import shared_libs; print('shared_libs imported successfully')" 2>&1
+
+# ============================================
+# 一键检查命令
+# ============================================
+cd /opt/enterprise-ai-platform && echo "=== Local shared_libs ===" && ls -la shared_libs/ 2>&1 | head -10 && echo "" && echo "=== Container shared_libs ===" && sudo docker exec enterprise-ai-mcp-gateway ls -la /shared_libs 2>&1 | head -10 && echo "" && echo "=== PYTHONPATH ===" && sudo docker exec enterprise-ai-mcp-gateway env | grep PYTHONPATH && echo "" && echo "=== Test Import ===" && sudo docker exec enterprise-ai-mcp-gateway python -c "import sys; sys.path.insert(0, '/shared_libs'); import shared_libs; print('OK')" 2>&1
+

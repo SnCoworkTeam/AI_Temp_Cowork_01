@@ -1,0 +1,1 @@
+# JoyAgent Adapter Integration Package

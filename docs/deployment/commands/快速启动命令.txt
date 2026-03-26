@@ -1,0 +1,18 @@
+# 快速启动所有服务的命令
+# 在服务器上执行
+
+cd /opt/enterprise-ai-platform
+
+# 一键启动（忽略所有网络警告）
+sudo docker compose up -d postgres && sleep 15 && sudo docker compose up -d redis && sleep 5 && sudo docker compose up -d mcp-gateway
+
+# 等待所有服务启动后检查状态
+sleep 10
+sudo docker compose ps
+
+# 查看mcp-gateway日志
+sudo docker compose logs --tail=30 mcp-gateway
+
+# 测试服务
+curl http://localhost:8001/api/health
+

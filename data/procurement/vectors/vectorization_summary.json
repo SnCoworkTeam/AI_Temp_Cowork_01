@@ -1,0 +1,78 @@
+{
+  "total_activities": 10,
+  "vector_dimension": 1536,
+  "embedding_model": "mock",
+  "vectorized_at": "2025-12-02 20:38:02",
+  "activities": [
+    {
+      "activity_id": "activity:procurement:create_po",
+      "activity_name": "创建采购订单",
+      "vector_dimension": 1536,
+      "embedding_model": "mock",
+      "vectorized_at": "2025-12-02 20:38:02"
+    },
+    {
+      "activity_id": "activity:procurement:query_po",
+      "activity_name": "查询采购订单",
+      "vector_dimension": 1536,
+      "embedding_model": "mock",
+      "vectorized_at": "2025-12-02 20:38:02"
+    },
+    {
+      "activity_id": "activity:procurement:approve_po",
+      "activity_name": "审批采购订单",
+      "vector_dimension": 1536,
+      "embedding_model": "mock",
+      "vectorized_at": "2025-12-02 20:38:02"
+    },
+    {
+      "activity_id": "activity:procurement:handle_exception",
+      "activity_name": "处理采购异常",
+      "vector_dimension": 1536,
+      "embedding_model": "mock",
+      "vectorized_at": "2025-12-02 20:38:02"
+    },
+    {
+      "activity_id": "activity:procurement:generate_report",
+      "activity_name": "生成采购报告",
+      "vector_dimension": 1536,
+      "embedding_model": "mock",
+      "vectorized_at": "2025-12-02 20:38:02"
+    },
+    {
+      "activity_id": "activity:procurement:check_inventory",
+      "activity_name": "检查库存",
+      "vector_dimension": 1536,
+      "embedding_model": "mock",
+      "vectorized_at": "2025-12-02 20:38:02"
+    },
+    {
+      "activity_id": "activity:procurement:contact_supplier",
+      "activity_name": "联系供应商",
+      "vector_dimension": 1536,
+      "embedding_model": "mock",
+      "vectorized_at": "2025-12-02 20:38:02"
+    },
+    {
+      "activity_id": "activity:procurement:update_po",
+      "activity_name": "更新采购订单",
+      "vector_dimension": 1536,
+      "embedding_model": "mock",
+      "vectorized_at": "2025-12-02 20:38:02"
+    },
+    {
+      "activity_id": "activity:procurement:receive_goods",
+      "activity_name": "收货确认",
+      "vector_dimension": 1536,
+      "embedding_model": "mock",
+      "vectorized_at": "2025-12-02 20:38:02"
+    },
+    {
+      "activity_id": "activity:procurement:process_payment",
+      "activity_name": "处理付款",
+      "vector_dimension": 1536,
+      "embedding_model": "mock",
+      "vectorized_at": "2025-12-02 20:38:02"
+    }
+  ]
+}

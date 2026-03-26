@@ -1,0 +1,48 @@
+{
+  "failed": 8,
+  "skipped": 5,
+  "passed": 0,
+  "details": [
+    {
+      "Status": "FAILED",
+      "Test": "TC-001: 查看项目列表",
+      "Message": "An error occurred while sending the request. (状态码: )"
+    },
+    {
+      "Status": "FAILED",
+      "Test": "TC-002: 项目列表筛选（规划中）",
+      "Message": "An error occurred while sending the request. (状态码: )"
+    },
+    {
+      "Status": "FAILED",
+      "Test": "TC-003: 项目列表API可用性",
+      "Message": "An error occurred while sending the request. (状态码: )"
+    },
+    {
+      "Status": "FAILED",
+      "Test": "TC-004: 创建新项目（基础信息）",
+      "Message": "An error occurred while sending the request. (状态码: )"
+    },
+    {
+      "Status": "FAILED",
+      "Test": "TC-005: 创建项目（完整信息）",
+      "Message": "An error occurred while sending the request. (状态码: )"
+    },
+    {
+      "Status": "FAILED",
+      "Test": "TC-010: 创建待删除的测试项目",
+      "Message": "An error occurred while sending the request. (状态码: )"
+    },
+    {
+      "Status": "FAILED",
+      "Test": "TC-013: 查看项目群列表",
+      "Message": "An error occurred while sending the request. (状态码: )"
+    },
+    {
+      "Status": "FAILED",
+      "Test": "TC-014: 创建项目群",
+      "Message": "An error occurred while sending the request. (状态码: )"
+    }
+  ],
+  "total": 8
+}

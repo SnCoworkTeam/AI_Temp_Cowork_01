@@ -1,0 +1,81 @@
+# 直接启动容器 - 绕过docker compose的网络问题
+# docker compose因为网络问题无法启动，直接使用docker命令
+
+cd /opt/enterprise-ai-platform
+
+# ============================================
+# 方法1: 直接启动postgres容器（绕过compose）
+# ============================================
+# 直接启动postgres容器
+sudo docker start enterprise-ai-postgres
+
+# 等待postgres就绪
+sleep 15
+
+# 验证postgres运行
+sudo docker ps | grep postgres
+
+# 测试postgres连接
+sudo docker exec enterprise-ai-postgres pg_isready -U postgres
+
+# ============================================
+# 方法2: 检查并创建redis容器
+# ============================================
+# 检查redis容器是否存在
+sudo docker ps -a | grep enterprise-ai-redis
+
+# 如果redis容器不存在，使用compose创建（只创建redis，不涉及网络删除）
+sudo docker compose up -d redis
+
+# 如果redis容器存在但未运行，直接启动
+sudo docker start enterprise-ai-redis 2>/dev/null || sudo docker compose up -d redis
+
+# 等待redis就绪
+sleep 5
+
+# 验证redis运行
+sudo docker ps | grep redis
+
+# ============================================
+# 方法3: 创建并启动mcp-gateway
+# ============================================
+# 检查mcp-gateway容器是否存在
+sudo docker ps -a | grep mcp-gateway
+
+# 如果不存在，创建它（此时postgres和redis已运行）
+sudo docker compose up -d mcp-gateway
+
+# 等待mcp-gateway启动
+sleep 20
+
+# ============================================
+# 方法4: 如果mcp-gateway启动失败，检查网络
+# ============================================
+# 检查网络是否存在
+sudo docker network ls | grep enterprise-ai-network
+
+# 如果网络不存在，创建它
+sudo docker network create enterprise-ai-network 2>/dev/null || echo "Network already exists"
+
+# 将postgres连接到网络（如果不在网络中）
+sudo docker network connect enterprise-ai-network enterprise-ai-postgres 2>/dev/null || echo "Already connected"
+
+# 然后启动mcp-gateway
+sudo docker compose up -d mcp-gateway
+
+# ============================================
+# 验证所有服务
+# ============================================
+# 检查所有容器
+sudo docker ps
+
+# 测试服务
+sudo docker exec enterprise-ai-postgres pg_isready -U postgres
+sudo docker exec enterprise-ai-redis redis-cli ping
+curl http://localhost:8001/api/health
+
+# ============================================
+# 一键启动命令
+# ============================================
+sudo docker start enterprise-ai-postgres && sleep 15 && (sudo docker start enterprise-ai-redis 2>/dev/null || sudo docker compose up -d redis) && sleep 5 && sudo docker network create enterprise-ai-network 2>/dev/null; sudo docker network connect enterprise-ai-network enterprise-ai-postgres 2>/dev/null; sudo docker compose up -d mcp-gateway && sleep 20 && sudo docker ps
+

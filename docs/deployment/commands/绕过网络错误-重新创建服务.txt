@@ -1,0 +1,86 @@
+# 绕过网络错误 - 重新创建服务
+# postgres容器已删除，但网络删除错误阻止创建
+# 解决方案：忽略网络错误，直接创建容器
+
+cd /opt/enterprise-ai-platform
+
+# ============================================
+# 方法1: 忽略网络错误，直接创建（推荐）
+# ============================================
+# 网络删除错误不影响创建新容器，可以忽略
+# 执行命令后，即使有网络错误，容器也会被创建
+
+# 创建postgres、redis和mcp-gateway
+sudo docker compose up -d postgres redis mcp-gateway
+
+# 即使看到网络错误，也继续执行以下命令检查容器是否创建
+sleep 5
+
+# 检查容器是否创建
+sudo docker ps -a | grep -E "postgres|redis|mcp-gateway"
+
+# 如果容器已创建，启动它们
+sudo docker start enterprise-ai-postgres enterprise-ai-redis enterprise-ai-mcp-gateway 2>/dev/null
+
+# 等待服务启动
+sleep 20
+
+# 检查状态
+sudo docker ps
+
+# ============================================
+# 方法2: 手动创建网络，然后创建服务
+# ============================================
+# 检查网络是否存在
+sudo docker network ls | grep enterprise-ai-network
+
+# 如果网络不存在，创建它
+sudo docker network create enterprise-ai-network 2>/dev/null || echo "Network exists or created"
+
+# 现在创建服务（应该不会再有网络删除错误）
+sudo docker compose up -d postgres redis mcp-gateway
+
+# 等待启动
+sleep 20
+
+# 检查状态
+sudo docker ps
+
+# ============================================
+# 方法3: 临时停止redis-commander，创建服务后再启动
+# ============================================
+# 停止redis-commander
+sudo docker stop enterprise-ai-redis-commander
+
+# 创建服务
+sudo docker compose up -d postgres redis mcp-gateway
+
+# 等待启动
+sleep 20
+
+# 重新启动redis-commander
+sudo docker start enterprise-ai-redis-commander
+
+# 检查所有服务
+sudo docker ps
+
+# ============================================
+# 验证服务
+# ============================================
+# 检查所有容器
+sudo docker ps
+
+# 测试postgres
+sudo docker exec enterprise-ai-postgres pg_isready -U postgres
+
+# 测试redis
+sudo docker exec enterprise-ai-redis redis-cli ping
+
+# 测试mcp-gateway
+curl http://localhost:8001/api/health
+
+# ============================================
+# 一键命令（方法1 - 忽略网络错误）
+# ============================================
+sudo docker compose up -d postgres redis mcp-gateway 2>&1 | grep -v "error while removing network"; sleep 5; sudo docker ps -a | grep -E "postgres|redis|mcp-gateway"; sudo docker start enterprise-ai-postgres enterprise-ai-redis enterprise-ai-mcp-gateway 2>/dev/null; sleep 20; sudo docker ps
+

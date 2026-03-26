@@ -1,0 +1,30 @@
+# 单行命令 - 可以直接复制执行
+# 在PowerShell中执行
+
+# 1. shared_libs/requirements.txt
+scp -i "E:\enterprise-ai-platform\enterprise_ai_platform.pem" -o StrictHostKeyChecking=no shared_libs/requirements.txt ubuntu@43.143.139.197:/opt/enterprise-ai-platform/shared_libs/
+
+# 2. mcp-gateway/requirements.txt
+scp -i "E:\enterprise-ai-platform\enterprise_ai_platform.pem" -o StrictHostKeyChecking=no mcp-gateway/requirements.txt ubuntu@43.143.139.197:/opt/enterprise-ai-platform/mcp-gateway/
+
+# 3. workflow-engine/requirements.txt
+scp -i "E:\enterprise-ai-platform\enterprise_ai_platform.pem" -o StrictHostKeyChecking=no workflow-engine/requirements.txt ubuntu@43.143.139.197:/opt/enterprise-ai-platform/workflow-engine/
+
+# 4. auth-service/requirements.txt
+scp -i "E:\enterprise-ai-platform\enterprise_ai_platform.pem" -o StrictHostKeyChecking=no auth-service/requirements.txt ubuntu@43.143.139.197:/opt/enterprise-ai-platform/auth-service/
+
+# 5. knowledge-base/requirements.txt
+scp -i "E:\enterprise-ai-platform\enterprise_ai_platform.pem" -o StrictHostKeyChecking=no knowledge-base/requirements.txt ubuntu@43.143.139.197:/opt/enterprise-ai-platform/knowledge-base/
+
+# 6. metadata-service/requirements.txt
+scp -i "E:\enterprise-ai-platform\enterprise_ai_platform.pem" -o StrictHostKeyChecking=no metadata-service/requirements.txt ubuntu@43.143.139.197:/opt/enterprise-ai-platform/metadata-service/
+
+# 7. database/requirements.txt
+scp -i "E:\enterprise-ai-platform\enterprise_ai_platform.pem" -o StrictHostKeyChecking=no database/requirements.txt ubuntu@43.143.139.197:/opt/enterprise-ai-platform/database/
+
+# 8. README.md（如果还没有更新）
+scp -i "E:\enterprise-ai-platform\enterprise_ai_platform.pem" -o StrictHostKeyChecking=no README.md ubuntu@43.143.139.197:/opt/enterprise-ai-platform/
+
+# 验证命令
+ssh -i "E:\enterprise-ai-platform\enterprise_ai_platform.pem" -o StrictHostKeyChecking=no ubuntu@43.143.139.197 "cd /opt/enterprise-ai-platform && grep -h 'pydantic>=' shared_libs/requirements.txt mcp-gateway/requirements.txt | head -2"
+

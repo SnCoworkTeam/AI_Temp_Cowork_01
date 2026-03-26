@@ -1,0 +1,1 @@
+INSERT INTO users (id, username, email, password_hash, full_name, status, created_at, updated_at) VALUES (gen_random_uuid(), 'admin', 'admin@example.com', 'python: can't open file '/tmp/temp_hash.py': [Errno 2] No such file or directory', '系统管理员', 'active', now(), now()) ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash, updated_at = now();

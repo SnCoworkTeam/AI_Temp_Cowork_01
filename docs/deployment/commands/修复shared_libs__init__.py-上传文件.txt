@@ -1,0 +1,39 @@
+# 修复shared_libs/__init__.py - 上传文件
+# 问题：__init__.py导入失败导致整个包无法被识别
+
+# ============================================
+# 需要上传的文件
+# ============================================
+
+# 1. 修复后的__init__.py（更健壮的异常处理）
+scp -i "E:\enterprise-ai-platform\enterprise_ai_platform.pem" -o StrictHostKeyChecking=no shared_libs/__init__.py ubuntu@43.143.139.197:/opt/enterprise-ai-platform/shared_libs/
+
+# ============================================
+# 在服务器上执行的操作
+# ============================================
+
+cd /opt/enterprise-ai-platform
+
+# 1. 重启mcp-gateway（代码已热重载，但需要重启确保加载新代码）
+sudo docker compose restart mcp-gateway
+
+# 2. 等待启动
+sleep 20
+
+# 3. 检查状态
+sudo docker compose ps mcp-gateway
+
+# 4. 查看日志（应该没有导入错误了）
+sudo docker compose logs --tail=30 mcp-gateway
+
+# 5. 测试服务
+curl http://localhost:8001/api/health
+
+# ============================================
+# 验证修复
+# ============================================
+# 查看日志，应该不再有 "ModuleNotFoundError: No module named 'shared_libs'" 错误
+sudo docker compose logs mcp-gateway | grep -i "module\|import\|shared_libs" | tail -10
+
+# 如果看到 "Application startup complete" 或类似消息，说明启动成功
+

@@ -1,0 +1,90 @@
+{
+  "name": "文档处理工作流",
+  "description": "上传、解析和处理文档",
+  "version": "1.0.0",
+  "nodes": [
+    {
+      "id": "start",
+      "name": "开始",
+      "type": "start",
+      "position": {"x": 100, "y": 100}
+    },
+    {
+      "id": "upload_doc",
+      "name": "上传文档",
+      "type": "document_processing",
+      "description": "上传文档到知识库",
+      "config": {
+        "process_type": "upload",
+        "file_path_field": "file_path",
+        "tags": ["工作流处理", "自动上传"],
+        "output_key": "upload_result"
+      },
+      "position": {"x": 300, "y": 100}
+    },
+    {
+      "id": "parse_doc",
+      "name": "解析文档",
+      "type": "document_processing",
+      "description": "解析文档内容",
+      "config": {
+        "process_type": "parse",
+        "input_field": "upload_result.document_id",
+        "extract_metadata": true,
+        "output_key": "parsed_document"
+      },
+      "position": {"x": 500, "y": 100}
+    },
+    {
+      "id": "extract_meta",
+      "name": "提取元数据",
+      "type": "document_processing",
+      "description": "提取文档元数据",
+      "config": {
+        "process_type": "extract_metadata",
+        "input_field": "upload_result.document_id",
+        "output_key": "document_metadata"
+      },
+      "position": {"x": 700, "y": 100}
+    },
+    {
+      "id": "end",
+      "name": "结束",
+      "type": "end",
+      "position": {"x": 900, "y": 100}
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn1",
+      "source": {"node_id": "start"},
+      "target": {"node_id": "upload_doc"}
+    },
+    {
+      "id": "conn2",
+      "source": {"node_id": "upload_doc"},
+      "target": {"node_id": "parse_doc"}
+    },
+    {
+      "id": "conn3",
+      "source": {"node_id": "parse_doc"},
+      "target": {"node_id": "extract_meta"}
+    },
+    {
+      "id": "conn4",
+      "source": {"node_id": "extract_meta"},
+      "target": {"node_id": "end"}
+    }
+  ],
+  "start_node_id": "start",
+  "end_node_ids": ["end"]
+}
+
+
+
+
+
+
+
+
+

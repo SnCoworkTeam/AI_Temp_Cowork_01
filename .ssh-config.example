@@ -1,0 +1,25 @@
+# SSH 配置文件示例
+# 将此文件内容复制到 C:\Users\YourUsername\.ssh\config
+# 或者 Windows 路径: %USERPROFILE%\.ssh\config
+
+Host enterprise-ai-server
+    HostName 43.143.139.197
+    User ubuntu
+    IdentityFile C:\Users\YourUsername\.ssh\enterprise_ai_platform.pem
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+    # 如果需要使用密码认证，取消下面的注释
+    # PreferredAuthentications password
+    # PasswordAuthentication yes
+
+# 如果密钥文件在项目根目录，使用以下配置：
+# Host enterprise-ai-server
+#     HostName 43.143.139.197
+#     User ubuntu
+#     IdentityFile E:\enterprise-ai-platform\enterprise_ai_platform.pem
+#     StrictHostKeyChecking no
+#     ServerAliveInterval 60
+#     ServerAliveCountMax 3
+

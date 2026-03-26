@@ -1,0 +1,41 @@
+# 测试shared_libs导入 - 正确命令
+# 在服务器上执行
+
+cd /opt/enterprise-ai-platform
+
+# 方法1: 使用单引号包裹整个Python代码
+sudo docker exec enterprise-ai-mcp-gateway python -c 'import sys; sys.path.insert(0, "/shared_libs"); import traceback; try: import shared_libs; print("OK"); except Exception as e: traceback.print_exc()'
+
+# 方法2: 使用转义
+sudo docker exec enterprise-ai-mcp-gateway python -c "import sys; sys.path.insert(0, '/shared_libs'); import traceback; try:\n    import shared_libs\n    print('OK')\nexcept Exception as e:\n    traceback.print_exc()"
+
+# 方法3: 使用多行（推荐）
+sudo docker exec enterprise-ai-mcp-gateway python << 'EOF'
+import sys
+sys.path.insert(0, '/shared_libs')
+import traceback
+try:
+    import shared_libs
+    print('OK')
+    print('Location:', shared_libs.__file__)
+except Exception as e:
+    traceback.print_exc()
+EOF
+
+# 方法4: 测试schemas导入
+sudo docker exec enterprise-ai-mcp-gateway python << 'EOF'
+import sys
+sys.path.insert(0, '/shared_libs')
+import traceback
+try:
+    from shared_libs.schemas.monitoring_schemas import ServiceMonitoringData
+    print('monitoring_schemas imported OK')
+except Exception as e:
+    traceback.print_exc()
+EOF
+
+# ============================================
+# 最简单的测试命令
+# ============================================
+sudo docker exec enterprise-ai-mcp-gateway python -c 'import sys; sys.path.insert(0, "/shared_libs"); import shared_libs; print("OK")'
+

@@ -1,0 +1,93 @@
+{
+  "skipped": 0,
+  "failed": 2,
+  "details": [
+    {
+      "Test": "TC-001: 查看项目列表",
+      "Message": "测试通过",
+      "Status": "PASSED"
+    },
+    {
+      "Test": "TC-002: 项目列表筛选（规划中）",
+      "Message": "测试通过",
+      "Status": "PASSED"
+    },
+    {
+      "Test": "TC-003: 项目列表API可用性",
+      "Message": "测试通过",
+      "Status": "PASSED"
+    },
+    {
+      "Test": "TC-004: 创建新项目（基础信息）",
+      "Message": "测试通过",
+      "Status": "PASSED"
+    },
+    {
+      "Test": "TC-005: 创建项目（完整信息）",
+      "Message": "测试通过",
+      "Status": "PASSED"
+    },
+    {
+      "Test": "TC-007: 查看项目详情",
+      "Message": "测试通过",
+      "Status": "PASSED"
+    },
+    {
+      "Test": "TC-008: 编辑项目基本信息",
+      "Message": "测试通过",
+      "Status": "PASSED"
+    },
+    {
+      "Test": "TC-010: 创建待删除的测试项目",
+      "Message": "测试通过",
+      "Status": "PASSED"
+    },
+    {
+      "Test": "TC-010: 删除项目",
+      "Message": "Response status code does not indicate success: 500 (Internal Server Error). (状态码: 500)",
+      "Status": "FAILED"
+    },
+    {
+      "Test": "TC-010: 验证项目已删除",
+      "Message": "状态码不匹配: 200",
+      "Status": "FAILED"
+    },
+    {
+      "Test": "TC-013: 查看项目群列表",
+      "Message": "测试通过",
+      "Status": "PASSED"
+    },
+    {
+      "Test": "TC-014: 创建项目群",
+      "Message": "测试通过",
+      "Status": "PASSED"
+    },
+    {
+      "Test": "TC-015: 编辑项目群",
+      "Message": "测试通过",
+      "Status": "PASSED"
+    },
+    {
+      "Test": "TC-016: 删除项目群",
+      "Message": "测试通过",
+      "Status": "PASSED"
+    },
+    {
+      "Test": "TC-017: 查看项目任务列表",
+      "Message": "测试通过",
+      "Status": "PASSED"
+    },
+    {
+      "Test": "TC-021: 查看项目周报列表",
+      "Message": "测试通过",
+      "Status": "PASSED"
+    },
+    {
+      "Test": "TC-019: 查看项目计划列表",
+      "Message": "测试通过",
+      "Status": "PASSED"
+    }
+  ],
+  "total": 17,
+  "passed": 15
+}

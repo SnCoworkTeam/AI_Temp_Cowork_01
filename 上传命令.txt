@@ -1,0 +1,23 @@
+# 直接执行以下命令上传文件并重启服务
+
+# 1. 上传主要服务目录
+scp -i enterprise_ai_platform.pem -r -o StrictHostKeyChecking=no agent-service ubuntu@43.143.139.197:/opt/enterprise-ai-platform/
+scp -i enterprise_ai_platform.pem -r -o StrictHostKeyChecking=no api-gateway ubuntu@43.143.139.197:/opt/enterprise-ai-platform/
+scp -i enterprise_ai_platform.pem -r -o StrictHostKeyChecking=no auth-service ubuntu@43.143.139.197:/opt/enterprise-ai-platform/
+scp -i enterprise_ai_platform.pem -r -o StrictHostKeyChecking=no dag-orchestrator ubuntu@43.143.139.197:/opt/enterprise-ai-platform/
+scp -i enterprise_ai_platform.pem -r -o StrictHostKeyChecking=no knowledge-base ubuntu@43.143.139.197:/opt/enterprise-ai-platform/
+scp -i enterprise_ai_platform.pem -r -o StrictHostKeyChecking=no mcp-gateway ubuntu@43.143.139.197:/opt/enterprise-ai-platform/
+scp -i enterprise_ai_platform.pem -r -o StrictHostKeyChecking=no metadata-service ubuntu@43.143.139.197:/opt/enterprise-ai-platform/
+scp -i enterprise_ai_platform.pem -r -o StrictHostKeyChecking=no registry-service ubuntu@43.143.139.197:/opt/enterprise-ai-platform/
+scp -i enterprise_ai_platform.pem -r -o StrictHostKeyChecking=no services ubuntu@43.143.139.197:/opt/enterprise-ai-platform/
+scp -i enterprise_ai_platform.pem -r -o StrictHostKeyChecking=no shared_libs ubuntu@43.143.139.197:/opt/enterprise-ai-platform/
+
+# 2. 上传web-ui
+scp -i enterprise_ai_platform.pem -r -o StrictHostKeyChecking=no web-ui/src ubuntu@43.143.139.197:/opt/enterprise-ai-platform/web-ui/
+scp -i enterprise_ai_platform.pem -o StrictHostKeyChecking=no web-ui/package.json ubuntu@43.143.139.197:/opt/enterprise-ai-platform/web-ui/
+scp -i enterprise_ai_platform.pem -o StrictHostKeyChecking=no web-ui/next.config.js ubuntu@43.143.139.197:/opt/enterprise-ai-platform/web-ui/
+
+# 3. 重启服务
+ssh -i enterprise_ai_platform.pem -o StrictHostKeyChecking=no ubuntu@43.143.139.197 "cd /opt/enterprise-ai-platform && docker compose restart agent-service api-gateway auth-service dag-orchestrator knowledge-base mcp-gateway metadata-service registry-service web-ui"
+
+

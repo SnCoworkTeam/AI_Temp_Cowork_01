@@ -1,0 +1,79 @@
+# 启动服务命令（忽略网络警告）
+# 网络警告可以安全忽略，不影响服务运行
+
+cd /opt/enterprise-ai-platform
+
+# ============================================
+# 步骤1: 启动postgres（忽略网络警告）
+# ============================================
+sudo docker compose up -d postgres
+
+# 检查postgres是否启动成功
+sudo docker ps | grep postgres
+
+# 如果postgres未运行，查看日志
+sudo docker compose logs --tail=20 postgres
+
+# 等待postgres就绪（约10-15秒）
+sleep 15
+
+# 测试postgres连接
+sudo docker exec enterprise-ai-postgres pg_isready -U postgres
+
+# ============================================
+# 步骤2: 启动redis（忽略网络警告）
+# ============================================
+sudo docker compose up -d redis
+
+# 检查redis是否启动成功
+sudo docker ps | grep redis
+
+# 等待redis就绪（约5秒）
+sleep 5
+
+# 测试redis连接
+sudo docker exec enterprise-ai-redis redis-cli ping
+
+# ============================================
+# 步骤3: 验证基础服务状态
+# ============================================
+sudo docker compose ps postgres redis
+
+# 应该看到两个服务都是 "Up" 状态
+
+# ============================================
+# 步骤4: 启动mcp-gateway（忽略网络警告）
+# ============================================
+sudo docker compose up -d mcp-gateway
+
+# 等待启动（约10秒）
+sleep 10
+
+# ============================================
+# 步骤5: 检查所有服务状态
+# ============================================
+sudo docker compose ps
+
+# 查看mcp-gateway日志
+sudo docker compose logs --tail=50 mcp-gateway
+
+# 测试健康检查
+curl http://localhost:8001/api/health
+
+# ============================================
+# 一键启动命令（复制执行）
+# ============================================
+sudo docker compose up -d postgres && sleep 15 && sudo docker compose up -d redis && sleep 5 && sudo docker compose up -d mcp-gateway && sleep 10 && sudo docker compose ps
+
+# ============================================
+# 如果postgres启动失败，检查原因
+# ============================================
+# 查看postgres日志
+sudo docker logs enterprise-ai-postgres
+
+# 检查postgres容器状态
+sudo docker inspect enterprise-ai-postgres | grep -A 10 "State"
+
+# 如果需要，重新创建postgres容器
+sudo docker compose up -d --force-recreate postgres
+

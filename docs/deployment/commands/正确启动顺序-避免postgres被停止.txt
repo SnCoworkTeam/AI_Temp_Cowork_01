@@ -1,0 +1,73 @@
+# 正确的启动顺序 - 避免postgres被停止
+# 问题：docker compose up会停止已存在的容器，需要按正确顺序启动
+
+cd /opt/enterprise-ai-platform
+
+# ============================================
+# 方法1: 使用docker start启动postgres（推荐）
+# ============================================
+# 直接启动postgres容器，避免docker compose停止它
+sudo docker start enterprise-ai-postgres
+
+# 等待postgres就绪
+sleep 15
+
+# 验证postgres运行
+sudo docker ps | grep postgres
+
+# 启动redis（使用docker compose）
+sudo docker compose up -d redis
+
+# 等待redis就绪
+sleep 5
+
+# 启动mcp-gateway（使用docker compose）
+sudo docker compose up -d mcp-gateway
+
+# 等待mcp-gateway启动
+sleep 15
+
+# 检查所有服务
+sudo docker compose ps
+
+# ============================================
+# 方法2: 使用docker compose，但先确保postgres运行
+# ============================================
+# 先启动postgres
+sudo docker compose up -d postgres
+
+# 等待postgres就绪
+sleep 15
+
+# 然后启动redis和mcp-gateway
+sudo docker compose up -d redis mcp-gateway
+
+# 等待服务启动
+sleep 15
+
+# 检查状态
+sudo docker compose ps
+
+# ============================================
+# 方法3: 一次性启动所有服务（推荐）
+# ============================================
+# 这样docker compose会按依赖顺序启动
+sudo docker compose up -d postgres redis mcp-gateway
+
+# 等待所有服务启动
+sleep 20
+
+# 检查状态
+sudo docker compose ps
+
+# 查看mcp-gateway日志
+sudo docker compose logs --tail=50 mcp-gateway
+
+# 测试服务
+curl http://localhost:8001/api/health
+
+# ============================================
+# 一键启动命令（推荐使用）
+# ============================================
+sudo docker start enterprise-ai-postgres && sleep 15 && sudo docker compose up -d redis mcp-gateway && sleep 15 && sudo docker compose ps
+

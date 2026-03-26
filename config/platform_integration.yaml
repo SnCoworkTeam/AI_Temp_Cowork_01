@@ -1,0 +1,930 @@
+# 企业AI平台集成配置
+# 配置与现有企业AI平台的集成端点、权限和安全边界
+
+version: "1.0.0"
+last_updated: "2024-01-20T00:00:00Z"
+
+# ==================== 服务监控集成 ====================
+service_monitoring:
+  # MCP Gateway监控集成
+  mcp-gateway:
+    base_url: "${MCP_GATEWAY_URL:-http://localhost:8001}"
+    endpoints:
+      health_check:
+        path: "/api/health"
+        method: "GET"
+        description: "健康检查端点"
+        timeout: 5
+        retry_count: 3
+      
+      metrics:
+        path: "/api/monitoring"
+        method: "GET"
+        description: "获取监控指标"
+        timeout: 10
+        retry_count: 2
+      
+      tool_stats:
+        path: "/api/tools/stats"
+        method: "GET"
+        description: "获取工具执行统计"
+        timeout: 10
+    
+    authentication:
+      type: "bearer_token"  # bearer_token, api_key, none
+      required: false
+      token_env: "MCP_GATEWAY_AUTH_TOKEN"
+  
+  # Workflow Engine监控集成
+  workflow-engine:
+    base_url: "${WORKFLOW_ENGINE_URL:-http://localhost:8002}"
+    endpoints:
+      health_check:
+        path: "/api/health"
+        method: "GET"
+        timeout: 5
+        retry_count: 3
+      
+      metrics:
+        path: "/api/monitoring"
+        method: "GET"
+        timeout: 10
+        retry_count: 2
+      
+      workflow_stats:
+        path: "/api/workflows/stats"
+        method: "GET"
+        timeout: 10
+      
+      execution_stats:
+        path: "/api/workflows/executions/stats"
+        method: "GET"
+        timeout: 10
+    
+    authentication:
+      type: "bearer_token"
+      required: false
+      token_env: "WORKFLOW_ENGINE_AUTH_TOKEN"
+  
+  # Auth Service监控集成
+  auth-service:
+    base_url: "${AUTH_SERVICE_URL:-http://localhost:8003}"
+    endpoints:
+      health_check:
+        path: "/api/health"
+        method: "GET"
+        timeout: 5
+        retry_count: 3
+      
+      metrics:
+        path: "/api/monitoring"
+        method: "GET"
+        timeout: 10
+        retry_count: 2
+      
+      user_stats:
+        path: "/api/users/stats"
+        method: "GET"
+        timeout: 10
+        requires_auth: true
+    
+    authentication:
+      type: "bearer_token"
+      required: true
+      token_env: "AUTH_SERVICE_AUTH_TOKEN"
+  
+  # Knowledge Base监控集成
+  knowledge-base:
+    base_url: "${KNOWLEDGE_BASE_URL:-http://localhost:8004}"
+    endpoints:
+      health_check:
+        path: "/api/health"
+        method: "GET"
+        timeout: 5
+        retry_count: 3
+      
+      metrics:
+        path: "/api/monitoring"
+        method: "GET"
+        timeout: 10
+        retry_count: 2
+      
+      performance_metrics:
+        path: "/api/analytics/performance"
+        method: "GET"
+        timeout: 10
+        description: "获取性能指标"
+      
+      search_stats:
+        path: "/api/search/stats"
+        method: "GET"
+        timeout: 10
+    
+    authentication:
+      type: "bearer_token"
+      required: false
+      token_env: "KNOWLEDGE_BASE_AUTH_TOKEN"
+
+# ==================== 管理API集成 ====================
+management_apis:
+  # 工作流管理API
+  workflow_management:
+    base_url: "${WORKFLOW_ENGINE_URL:-http://localhost:8002}"
+    endpoints:
+      # 工作流定义管理
+      list_workflows:
+        path: "/api/workflows"
+        method: "GET"
+        description: "获取工作流列表"
+        allowed: true
+        requires_auth: false
+      
+      get_workflow:
+        path: "/api/workflows/{workflow_id}"
+        method: "GET"
+        description: "获取工作流详情"
+        allowed: true
+        requires_auth: false
+      
+      create_workflow:
+        path: "/api/workflows"
+        method: "POST"
+        description: "创建工作流"
+        allowed: true
+        requires_auth: true
+        requires_approval: false
+      
+      update_workflow:
+        path: "/api/workflows/{workflow_id}"
+        method: "PUT"
+        description: "更新工作流"
+        allowed: true
+        requires_auth: true
+        requires_approval: true  # 需要人工审核
+      
+      delete_workflow:
+        path: "/api/workflows/{workflow_id}"
+        method: "DELETE"
+        description: "删除工作流"
+        allowed: false  # 禁止自动删除
+        requires_auth: true
+        requires_approval: true
+      
+      # 工作流执行管理
+      execute_workflow:
+        path: "/api/workflows/{workflow_id}/execute"
+        method: "POST"
+        description: "执行工作流"
+        allowed: true
+        requires_auth: false
+        max_concurrent: 10  # 最大并发执行数
+      
+      get_execution_status:
+        path: "/api/workflows/executions/{execution_id}"
+        method: "GET"
+        description: "获取执行状态"
+        allowed: true
+        requires_auth: false
+      
+      cancel_execution:
+        path: "/api/workflows/executions/{execution_id}/cancel"
+        method: "POST"
+        description: "取消执行"
+        allowed: true
+        requires_auth: true
+      
+      # 工作流版本管理
+      list_versions:
+        path: "/api/workflows/{workflow_id}/versions"
+        method: "GET"
+        description: "获取工作流版本列表"
+        allowed: true
+        requires_auth: false
+      
+      rollback_workflow:
+        path: "/api/workflows/{workflow_id}/rollback"
+        method: "POST"
+        description: "回滚工作流版本"
+        allowed: true
+        requires_auth: true
+        requires_approval: true  # 需要人工审核
+  
+  # 工具管理API
+  tool_management:
+    base_url: "${MCP_GATEWAY_URL:-http://localhost:8001}"
+    endpoints:
+      # 工具注册和发现
+      list_tools:
+        path: "/api/tools"
+        method: "GET"
+        description: "获取工具列表"
+        allowed: true
+        requires_auth: false
+      
+      get_tool:
+        path: "/api/tools/{tool_name}"
+        method: "GET"
+        description: "获取工具详情"
+        allowed: true
+        requires_auth: false
+      
+      register_tool:
+        path: "/api/tools/register"
+        method: "POST"
+        description: "注册新工具"
+        allowed: true
+        requires_auth: true
+        requires_approval: false
+      
+      update_tool:
+        path: "/api/tools/{tool_name}"
+        method: "PUT"
+        description: "更新工具配置"
+        allowed: true
+        requires_auth: true
+        requires_approval: true  # 需要人工审核
+      
+      unregister_tool:
+        path: "/api/tools/{tool_name}"
+        method: "DELETE"
+        description: "注销工具"
+        allowed: false  # 禁止自动删除
+        requires_auth: true
+        requires_approval: true
+      
+      # 工具执行
+      execute_tool:
+        path: "/api/tools/{tool_name}/execute"
+        method: "POST"
+        description: "执行工具"
+        allowed: true
+        requires_auth: false
+        timeout: 30  # 默认超时时间（秒）
+        max_timeout: 300  # 最大超时时间（秒）
+      
+      # 工具监控
+      get_tool_stats:
+        path: "/api/tools/{tool_name}/stats"
+        method: "GET"
+        description: "获取工具统计信息"
+        allowed: true
+        requires_auth: false
+      
+      get_tool_health:
+        path: "/api/tools/{tool_name}/health"
+        method: "GET"
+        description: "获取工具健康状态"
+        allowed: true
+        requires_auth: false
+  
+  # 用户管理API
+  user_management:
+    base_url: "${AUTH_SERVICE_URL:-http://localhost:8003}"
+    endpoints:
+      # 用户信息
+      get_current_user:
+        path: "/api/users/me"
+        method: "GET"
+        description: "获取当前用户信息"
+        allowed: true
+        requires_auth: true
+      
+      get_user:
+        path: "/api/users/{user_id}"
+        method: "GET"
+        description: "获取用户信息"
+        allowed: true
+        requires_auth: true
+        requires_admin: true
+      
+      list_users:
+        path: "/api/users"
+        method: "GET"
+        description: "获取用户列表"
+        allowed: true
+        requires_auth: true
+        requires_admin: true
+      
+      create_user:
+        path: "/api/users"
+        method: "POST"
+        description: "创建用户"
+        allowed: false  # 禁止自动创建用户
+        requires_auth: true
+        requires_admin: true
+        requires_approval: true
+      
+      update_user:
+        path: "/api/users/{user_id}"
+        method: "PUT"
+        description: "更新用户信息"
+        allowed: false  # 禁止自动更新用户
+        requires_auth: true
+        requires_admin: true
+        requires_approval: true
+      
+      delete_user:
+        path: "/api/users/{user_id}"
+        method: "DELETE"
+        description: "删除用户"
+        allowed: false  # 禁止自动删除用户
+        requires_auth: true
+        requires_admin: true
+        requires_approval: true
+      
+      # 用户角色和权限
+      get_user_roles:
+        path: "/api/users/{user_id}/roles"
+        method: "GET"
+        description: "获取用户角色"
+        allowed: true
+        requires_auth: true
+        requires_admin: true
+      
+      assign_role:
+        path: "/api/users/{user_id}/roles"
+        method: "POST"
+        description: "分配用户角色"
+        allowed: false  # 禁止自动分配角色
+        requires_auth: true
+        requires_admin: true
+        requires_approval: true
+  
+  # 知识库管理API
+  knowledge_base_management:
+    base_url: "${KNOWLEDGE_BASE_URL:-http://localhost:8004}"
+    endpoints:
+      # 文档管理
+      list_documents:
+        path: "/api/documents"
+        method: "GET"
+        description: "获取文档列表"
+        allowed: true
+        requires_auth: false
+      
+      get_document:
+        path: "/api/documents/{document_id}"
+        method: "GET"
+        description: "获取文档详情"
+        allowed: true
+        requires_auth: false
+      
+      upload_document:
+        path: "/api/documents/upload"
+        method: "POST"
+        description: "上传文档"
+        allowed: true
+        requires_auth: true
+        max_file_size_mb: 100  # 最大文件大小（MB）
+      
+      delete_document:
+        path: "/api/documents/{document_id}"
+        method: "DELETE"
+        description: "删除文档"
+        allowed: false  # 禁止自动删除文档
+        requires_auth: true
+        requires_approval: true
+      
+      # 搜索功能
+      semantic_search:
+        path: "/api/search/semantic"
+        method: "POST"
+        description: "语义搜索"
+        allowed: true
+        requires_auth: false
+        max_results: 100
+      
+      keyword_search:
+        path: "/api/search/keyword"
+        method: "POST"
+        description: "关键词搜索"
+        allowed: true
+        requires_auth: false
+        max_results: 100
+      
+      # 知识图谱
+      get_knowledge_graph:
+        path: "/api/knowledge-graph"
+        method: "GET"
+        description: "获取知识图谱"
+        allowed: true
+        requires_auth: false
+      
+      # 维护操作
+      rebuild_index:
+        path: "/api/maintenance/rebuild-indexes"
+        method: "POST"
+        description: "重建索引"
+        allowed: true
+        requires_auth: true
+        requires_approval: true  # 需要人工审核
+      
+      clear_cache:
+        path: "/api/maintenance/clear-cache"
+        method: "POST"
+        description: "清理缓存"
+        allowed: true
+        requires_auth: true
+        requires_approval: false
+
+# ==================== 数据访问权限 ====================
+data_access:
+  # 数据库访问权限
+  database:
+    enabled: true
+    connection:
+      read_only: true  # 只读访问
+      write_allowed: false  # 禁止写入
+      schema_access: true  # 允许访问schema信息
+      
+    allowed_operations:
+      - "SELECT"  # 允许查询
+      - "EXPLAIN"  # 允许执行计划
+      - "SHOW"  # 允许显示表结构
+      
+    forbidden_operations:
+      - "INSERT"
+      - "UPDATE"
+      - "DELETE"
+      - "DROP"
+      - "TRUNCATE"
+      - "ALTER"
+      - "CREATE"
+      
+    allowed_tables:
+      # 允许访问的表（支持通配符）
+      - "workflow_executions"
+      - "workflow_definitions"
+      - "tool_executions"
+      - "document_metadata"
+      - "user_sessions"
+      
+    forbidden_tables:
+      # 禁止访问的表
+      - "users"
+      - "roles"
+      - "permissions"
+      - "secrets"
+      - "api_keys"
+      
+    query_timeout: 30  # 查询超时时间（秒）
+    max_result_rows: 10000  # 最大返回行数
+  
+  # 日志文件访问权限
+  logs:
+    enabled: true
+    access_mode: "read_only"  # read_only, read_write, none
+    
+    allowed_operations:
+      - "read"
+      - "search"
+      - "tail"
+      
+    forbidden_operations:
+      - "delete"
+      - "modify"
+      - "archive"
+      
+    allowed_paths:
+      # 允许访问的日志路径（支持通配符）
+      - "/var/log/mcp-gateway/*.log"
+      - "/var/log/workflow-engine/*.log"
+      - "/var/log/auth-service/*.log"
+      - "/var/log/knowledge-base/*.log"
+      
+    forbidden_paths:
+      # 禁止访问的日志路径
+      - "/var/log/*/secrets.log"
+      - "/var/log/*/passwords.log"
+      - "/var/log/*/tokens.log"
+      
+    max_file_size_mb: 100  # 最大读取文件大小（MB）
+    retention_days: 30  # 日志保留天数
+  
+  # 配置管理权限
+  configuration:
+    enabled: true
+    access_mode: "read_only"  # read_only, read_write, restricted
+    
+    allowed_operations:
+      - "read"
+      - "validate"
+      - "compare"
+      
+    forbidden_operations:
+      - "write"
+      - "delete"
+      - "backup"
+      - "restore"
+      
+    allowed_paths:
+      # 允许访问的配置文件路径
+      - "config/*.yaml"
+      - "config/*.yml"
+      - "config/*.json"
+      - ".env.example"
+      
+    forbidden_paths:
+      # 禁止访问的配置文件路径
+      - "config/*.secret"
+      - "config/*.key"
+      - ".env"
+      - "**/secrets/**"
+      - "**/credentials/**"
+      
+    sensitive_keys:
+      # 敏感配置键（读取时会被屏蔽）
+      - "password"
+      - "secret"
+      - "key"
+      - "token"
+      - "credential"
+  
+  # 部署执行权限
+  deployment:
+    enabled: true
+    allowed_operations:
+      - "read_deployment_status"
+      - "read_deployment_logs"
+      - "validate_deployment_config"
+      
+    forbidden_operations:
+      - "execute_deployment"
+      - "rollback_deployment"
+      - "stop_service"
+      - "restart_service"
+      - "scale_service"
+      
+    requires_approval_for:
+      # 需要人工审核的操作
+      - "deployment_plan_creation"
+      - "config_update"
+      - "service_restart"
+      - "resource_scaling"
+
+# ==================== 安全边界设置 ====================
+security_boundaries:
+  # 允许的操作范围
+  allowed_operations:
+    # 监控和诊断
+    - "health_check"
+    - "metrics_collection"
+    - "log_analysis"
+    - "performance_monitoring"
+    - "error_analysis"
+    
+    # 只读数据访问
+    - "read_workflow_definitions"
+    - "read_tool_registrations"
+    - "read_execution_history"
+    - "read_document_metadata"
+    
+    # 分析和报告
+    - "generate_reports"
+    - "analyze_trends"
+    - "create_dashboards"
+    
+    # 配置验证
+    - "validate_configuration"
+    - "check_dependencies"
+    - "verify_service_health"
+  
+  # 禁止的敏感操作
+  forbidden_operations:
+    # 数据修改
+    - "delete_data"
+    - "modify_data"
+    - "truncate_tables"
+    - "drop_tables"
+    
+    # 用户和权限管理
+    - "create_user"
+    - "delete_user"
+    - "modify_user_permissions"
+    - "assign_roles"
+    
+    # 服务控制
+    - "stop_service"
+    - "restart_service"
+    - "kill_process"
+    - "modify_service_config"
+    
+    # 安全相关
+    - "access_secrets"
+    - "read_passwords"
+    - "modify_authentication"
+    - "bypass_security"
+    
+    # 部署操作
+    - "execute_deployment"
+    - "rollback_deployment"
+    - "modify_deployment_config"
+    
+    # 系统操作
+    - "system_command_execution"
+    - "file_system_modification"
+    - "network_configuration"
+    - "firewall_modification"
+  
+  # 人工审核阈值
+  approval_thresholds:
+    # 操作影响范围
+    impact_scope:
+      single_service:
+        requires_approval: false
+        auto_approval_timeout: 300  # 5分钟后自动批准（秒）
+      
+      multiple_services:
+        requires_approval: true
+        auto_approval_timeout: 0  # 必须人工审核
+      
+      critical_service:
+        requires_approval: true
+        auto_approval_timeout: 0  # 必须人工审核
+      
+      all_services:
+        requires_approval: true
+        auto_approval_timeout: 0
+    
+    # 数据访问范围
+    data_scope:
+      read_single_record:
+        requires_approval: false
+      
+      read_multiple_records:
+        requires_approval: false
+        max_records: 10000  # 超过此数量需要审核
+      
+      read_sensitive_data:
+        requires_approval: true
+      
+      read_all_data:
+        requires_approval: true
+    
+    # 操作频率
+    operation_frequency:
+      low_frequency:
+        threshold: 10  # 每小时10次以下
+        requires_approval: false
+      
+      medium_frequency:
+        threshold: 100  # 每小时100次以下
+        requires_approval: false
+        rate_limit: true
+      
+      high_frequency:
+        threshold: 1000  # 每小时1000次以下
+        requires_approval: true
+        rate_limit: true
+      
+      very_high_frequency:
+        threshold: 10000  # 超过每小时10000次
+        requires_approval: true
+        rate_limit: true
+        block_operation: true
+    
+    # 风险级别
+    risk_levels:
+      low_risk:
+        requires_approval: false
+      
+      medium_risk:
+        requires_approval: false
+        notification_required: true
+      
+      high_risk:
+        requires_approval: true
+        notification_required: true
+        escalation_required: true
+      
+      critical_risk:
+        requires_approval: true
+        notification_required: true
+        escalation_required: true
+        immediate_action: true
+  
+  # 紧急停止机制
+  emergency_stop:
+    enabled: true
+    
+    trigger_conditions:
+      # 触发紧急停止的条件
+      - condition: "error_rate > 50%"
+        description: "错误率超过50%"
+        severity: "critical"
+      
+      - condition: "service_down_count > 3"
+        description: "超过3个服务同时宕机"
+        severity: "critical"
+      
+      - condition: "data_corruption_detected"
+        description: "检测到数据损坏"
+        severity: "critical"
+      
+      - condition: "security_breach_detected"
+        description: "检测到安全漏洞"
+        severity: "critical"
+      
+      - condition: "unauthorized_access_detected"
+        description: "检测到未授权访问"
+        severity: "critical"
+      
+      - condition: "resource_exhaustion"
+        description: "资源耗尽"
+        severity: "high"
+      
+      - condition: "performance_degradation > 80%"
+        description: "性能下降超过80%"
+        severity: "high"
+    
+    stop_actions:
+      # 紧急停止时执行的操作
+      - action: "disable_auto_operations"
+        description: "禁用所有自动操作"
+        immediate: true
+      
+      - action: "notify_oncall"
+        description: "立即通知on-call人员"
+        immediate: true
+      
+      - action: "create_incident"
+        description: "创建事故记录"
+        immediate: true
+      
+      - action: "preserve_evidence"
+        description: "保存证据日志"
+        immediate: true
+      
+      - action: "isolate_affected_services"
+        description: "隔离受影响的服务"
+        immediate: false
+      
+      - action: "enable_maintenance_mode"
+        description: "启用维护模式"
+        immediate: false
+    
+    recovery_actions:
+      # 恢复操作
+      - action: "verify_system_health"
+        description: "验证系统健康状态"
+        required: true
+      
+      - action: "review_incident_logs"
+        description: "审查事故日志"
+        required: true
+      
+      - action: "manual_approval_required"
+        description: "需要人工批准才能恢复"
+        required: true
+    
+    bypass_mechanism:
+      # 紧急停止绕过机制（仅在极端情况下使用）
+      enabled: false  # 默认禁用
+      requires_admin_approval: true
+      requires_dual_approval: true  # 需要双重审批
+      audit_log: true  # 记录审计日志
+      max_bypass_duration_minutes: 15  # 最大绕过时长（分钟）
+
+# ==================== 监控和告警集成 ====================
+monitoring_integration:
+  # Prometheus集成
+  prometheus:
+    enabled: true
+    url: "${PROMETHEUS_URL:-http://localhost:9090}"
+    query_timeout: 30
+    max_query_range_days: 30
+  
+  # Grafana集成
+  grafana:
+    enabled: true
+    url: "${GRAFANA_URL:-http://localhost:3000}"
+    api_key_env: "GRAFANA_API_KEY"
+    default_dashboard_uid: "platform-overview"
+  
+  # Loki集成
+  loki:
+    enabled: true
+    url: "${LOKI_URL:-http://localhost:3100}"
+    query_timeout: 30
+    max_log_lines: 10000
+  
+  # Sentry集成
+  sentry:
+    enabled: false  # 可选，需要配置DSN
+    dsn_env: "SENTRY_DSN"
+    organization: "${SENTRY_ORG}"
+    project: "${SENTRY_PROJECT}"
+
+# ==================== 通知和告警配置 ====================
+notifications:
+  # 通知渠道
+  channels:
+    email:
+      enabled: false
+      smtp_server: "${SMTP_SERVER}"
+      smtp_port: "${SMTP_PORT:-587}"
+      from_address: "${EMAIL_FROM}"
+      recipients:
+        - "${ADMIN_EMAIL}"
+    
+    slack:
+      enabled: false
+      webhook_url: "${SLACK_WEBHOOK_URL}"
+      channel: "#alerts"
+    
+    webhook:
+      enabled: false
+      url: "${WEBHOOK_URL}"
+      headers:
+        Authorization: "Bearer ${WEBHOOK_TOKEN}"
+  
+  # 告警路由
+  alert_routing:
+    critical:
+      channels: ["email", "slack", "webhook"]
+      immediate: true
+      escalation_minutes: 5
+    
+    error:
+      channels: ["slack", "webhook"]
+      immediate: true
+      escalation_minutes: 15
+    
+    warning:
+      channels: ["webhook"]
+      immediate: false
+      escalation_minutes: 60
+    
+    info:
+      channels: []
+      immediate: false
+
+# ==================== 审计和日志 ====================
+audit:
+  enabled: true
+  
+  # 审计事件类型
+  event_types:
+    - "data_access"
+    - "configuration_change"
+    - "deployment_operation"
+    - "security_event"
+    - "approval_decision"
+    - "emergency_stop"
+  
+  # 审计日志存储
+  storage:
+    type: "file"  # file, database, external
+    path: "logs/audit.log"
+    rotation: "daily"
+    retention_days: 90
+  
+  # 审计字段
+  required_fields:
+    - "timestamp"
+    - "user"
+    - "action"
+    - "resource"
+    - "result"
+    - "ip_address"
+
+# ==================== 环境特定配置 ====================
+environments:
+  development:
+    security_boundaries:
+      approval_thresholds:
+        auto_approval_timeout: 60  # 开发环境更宽松
+    
+    data_access:
+      database:
+        read_only: false  # 开发环境允许写入
+  
+  staging:
+    security_boundaries:
+      approval_thresholds:
+        auto_approval_timeout: 300
+    
+    emergency_stop:
+      trigger_conditions:
+        - condition: "error_rate > 30%"  # 预发布环境阈值较低
+          severity: "critical"
+  
+  production:
+    security_boundaries:
+      approval_thresholds:
+        auto_approval_timeout: 0  # 生产环境必须人工审核
+    
+    data_access:
+      database:
+        read_only: true  # 生产环境严格只读
+      
+      deployment:
+        enabled: false  # 生产环境禁止自动部署
+    
+    emergency_stop:
+      enabled: true
+      trigger_conditions:
+        # 生产环境使用更严格的触发条件
+        - condition: "error_rate > 10%"
+          severity: "critical"
+

@@ -1,0 +1,66 @@
+# 开发环境Dockerfile - 支持热重载
+ARG NODE_VERSION=20
+
+# ============================================
+# 阶段1: 依赖安装
+# ============================================
+FROM node:${NODE_VERSION}-alpine AS deps
+
+WORKDIR /app
+
+# 配置 Alpine 镜像源（使用清华镜像）
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories || true
+
+# 安装系统依赖
+RUN apk add --no-cache libc6-compat
+
+# 配置 npm 镜像源（默认官方源，避免镜像异常）
+RUN npm config set registry https://registry.npmjs.org/
+
+# 复制包文件
+COPY package.json package-lock.json* ./
+
+# 安装依赖（如果有package-lock.json则使用npm ci，否则使用npm install，使用--legacy-peer-deps解决依赖冲突）
+RUN if [ -f package-lock.json ]; then npm ci --legacy-peer-deps; else npm install --legacy-peer-deps; fi
+
+# ============================================
+# 阶段2: 开发运行
+# ============================================
+FROM node:${NODE_VERSION}-alpine AS development
+
+# 配置 Alpine 镜像源（使用清华镜像）
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories || true
+
+# 配置 npm 镜像源（默认官方源，避免镜像异常）
+RUN npm config set registry https://registry.npmjs.org/
+
+WORKDIR /app
+
+# 从deps复制node_modules
+COPY --from=deps /app/node_modules ./node_modules
+
+# 复制源代码（开发时通过volume挂载，这里只是占位）
+COPY . .
+
+# 设置环境变量
+ENV NODE_ENV=development \
+    NEXT_TELEMETRY_DISABLED=1 \
+    WATCHPACK_POLLING=true \
+    CHOKIDAR_USEPOLLING=true
+
+# 暴露端口
+EXPOSE 3000
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
+
+# 开发模式启动
+CMD ["npm", "run", "dev"]
+
+
+
+
+
+
+

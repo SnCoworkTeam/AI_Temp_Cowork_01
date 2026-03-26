@@ -1,0 +1,58 @@
+{
+  "passed": 6,
+  "failed": 4,
+  "skipped": 5,
+  "total": 10,
+  "details": [
+    {
+      "Message": "测试通过",
+      "Test": "TC-001: 查看项目列表",
+      "Status": "PASSED"
+    },
+    {
+      "Message": "测试通过",
+      "Test": "TC-002: 项目列表筛选（规划中）",
+      "Status": "PASSED"
+    },
+    {
+      "Message": "测试通过",
+      "Test": "TC-003: 项目列表API可用性",
+      "Status": "PASSED"
+    },
+    {
+      "Message": "Response status code does not indicate success: 500 (Internal Server Error). (状态码: 500)",
+      "Test": "TC-004: 创建新项目（基础信息）",
+      "Status": "FAILED"
+    },
+    {
+      "Message": "Response status code does not indicate success: 500 (Internal Server Error). (状态码: 500)",
+      "Test": "TC-005: 创建项目（完整信息）",
+      "Status": "FAILED"
+    },
+    {
+      "Message": "Response status code does not indicate success: 500 (Internal Server Error). (状态码: 500)",
+      "Test": "TC-010: 创建待删除的测试项目",
+      "Status": "FAILED"
+    },
+    {
+      "Message": "测试通过",
+      "Test": "TC-013: 查看项目群列表",
+      "Status": "PASSED"
+    },
+    {
+      "Message": "测试通过",
+      "Test": "TC-014: 创建项目群",
+      "Status": "PASSED"
+    },
+    {
+      "Message": "测试通过",
+      "Test": "TC-015: 编辑项目群",
+      "Status": "PASSED"
+    },
+    {
+      "Message": "Response status code does not indicate success: 500 (Internal Server Error). (状态码: 500)",
+      "Test": "TC-016: 删除项目群",
+      "Status": "FAILED"
+    }
+  ]
+}

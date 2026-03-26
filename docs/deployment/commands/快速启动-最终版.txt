@@ -1,0 +1,20 @@
+# 快速启动所有服务 - 最终版
+# postgres已停止，现在统一启动
+
+cd /opt/enterprise-ai-platform
+
+# 一键启动所有服务
+sudo docker compose up -d postgres redis mcp-gateway
+
+# 等待启动
+sleep 25
+
+# 检查状态
+sudo docker compose ps
+
+# 查看mcp-gateway日志
+sudo docker compose logs --tail=30 mcp-gateway
+
+# 测试服务
+curl http://localhost:8001/api/health
+

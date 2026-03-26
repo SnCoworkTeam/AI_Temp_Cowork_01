@@ -1,0 +1,35 @@
+========================================
+OpenCode - 内网服务器运行说明（无需构建）
+========================================
+本文件夹包含已构建好的 OpenCode 镜像及部署文件，上传到内网服务器后按下面步骤运行。
+
+【前提】
+- 服务器已安装 Docker、Docker Compose
+- 19 服务已在运行，且存在网络 enterprise-ai-network
+- 项目根目录路径已知（例如 /opt/enterprise-ai-platform），用于挂载给 OpenCode 作 /workspace
+
+【步骤】
+
+1. 将本文件夹整体上传到服务器（例如放到项目根目录下）：
+   /opt/enterprise-ai-platform/opencode-server-export/
+
+2. 加载镜像（在本文件夹内执行）：
+   Linux:   docker load -i enterprise-ai-opencode.tar
+   Windows: docker load -i enterprise-ai-opencode.tar
+
+3. 配置环境变量（首次）：
+   复制 .env.example 为 .env，修改 OPENCODE_WORKSPACE 为服务器上项目根目录路径。
+   例如: OPENCODE_WORKSPACE=/opt/enterprise-ai-platform
+
+4. 启动 OpenCode（在本文件夹内执行）：
+   Linux:   docker compose -f docker-compose.opencode.yml --env-file .env up -d
+   Windows: docker compose -f docker-compose.opencode.yml --env-file .env up -d
+
+5. 查看状态：
+   docker compose -f docker-compose.opencode.yml ps
+   docker logs -f enterprise-ai-opencode
+
+【说明】
+- OpenCode 使用独立地址，默认端口 4096。与 19 个业务服务地址不同。
+- 平台登录认证通过后，在 Web 门户点击「OpenCode 开发」可跳转到本服务。
+- 详细实施方案见项目 docs/deployment/OpenCode同机部署实施方案.md

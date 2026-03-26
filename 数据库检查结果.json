@@ -1,0 +1,42 @@
+{
+  "postgresql": {
+    "status": "success",
+    "issues": [
+      {
+        "table": "user_sessions",
+        "type": "expired_data",
+        "count": 99
+      }
+    ],
+    "cleaned_records": 99,
+    "table_counts": {
+      "users": 2,
+      "roles": 0,
+      "workflow_definitions": 2,
+      "workflow_nodes": 6,
+      "documents": 45,
+      "document_chunks": 890,
+      "knowledge_bases": 3,
+      "knowledge_graph_nodes": 715,
+      "knowledge_graph_edges": 304
+    },
+    "total_issues": 1
+  },
+  "neo4j": {
+    "status": "error",
+    "error": "Couldn't connect to localhost:7687 (resolved to ()):\nFailed to establish connection to ResolvedIPv6Address(('::1', 7687, 0, 0)) (reason [WinError 10061] 由于目标计算机积极拒绝，无法连接。)\nFailed to establish connection to ResolvedIPv4Address(('127.0.0.1', 7687)) (reason [WinError 10061] 由于目标计算机积极拒绝，无法连接。)"
+  },
+  "qdrant": {
+    "status": "error",
+    "error": "Server disconnected without sending a response."
+  },
+  "redis": {},
+  "summary": {
+    "total_issues": 1,
+    "cleaned_records": 99,
+    "demo_data_generated": false
+  },
+  "demo_data": {
+    "error": "null value in column \"id\" of relation \"users\" violates not-null constraint\nDETAIL:  Failing row contains (null, demo_user_1, demo_user_1@example.com, demo_password_hash, null, null, active, null, null, null, 2025-12-16 12:19:38.471657, 2025-12-16 12:19:38.471657).\n"
+  }
+}

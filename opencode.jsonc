@@ -1,0 +1,61 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "enabled_providers": [
+    "sinochem",
+    "deepseek"
+  ],
+  "provider": {
+    "sinochem": {
+      "name": "中化集团模型服务",
+      "env": [
+        "SINOCHEM_API_KEY"
+      ],
+      "options": {
+        "baseURL": "http://opencode-llm-proxy:18080/api/model-service/v1"
+      },
+      "models": {
+        "Qwen3-32B-128K-t25w": {
+          "id": "Qwen3-32B-128K-t25w",
+          "name": "Qwen3-32B-128K-t25w",
+          "release_date": "2024-01-01",
+          "limit": {
+            "context": 131072,
+            "output": 8192
+          },
+          "temperature": true,
+          "tool_call": true,
+          "attachment": false,
+          "reasoning": false
+        }
+      }
+    },
+    "deepseek": {
+      "name": "DeepSeek 官方",
+      "env": [
+        "DEEPSEEK_API_KEY"
+      ],
+      "options": {
+        "baseURL": "https://api.deepseek.com/v1"
+      },
+      "models": {
+        "deepseek-chat": {
+          "id": "deepseek-chat",
+          "name": "deepseek-chat",
+          "release_date": "2024-01-01",
+          "limit": {
+            "context": 65536,
+            "output": 8192
+          },
+          "temperature": true,
+          "tool_call": true,
+          "attachment": false,
+          "reasoning": false
+        }
+      }
+    }
+  },
+  "permission": "allow",
+  "instructions": [
+    "opencode-language-zh.md"
+  ]
+}

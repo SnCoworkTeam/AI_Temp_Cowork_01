@@ -1,0 +1,103 @@
+# 启动所有服务的完整步骤
+# 在服务器上按顺序执行
+
+cd /opt/enterprise-ai-platform
+
+# ============================================
+# 步骤1: 检查当前所有容器状态
+# ============================================
+sudo docker ps -a
+
+# ============================================
+# 步骤2: 启动基础服务（postgres和redis）
+# ============================================
+
+# 启动postgres
+sudo docker compose up -d postgres
+
+# 启动redis
+sudo docker compose up -d redis
+
+# 等待服务就绪（约15-20秒）
+echo "等待postgres和redis启动..."
+sleep 20
+
+# ============================================
+# 步骤3: 验证基础服务状态
+# ============================================
+
+# 检查postgres状态
+sudo docker compose ps postgres
+sudo docker compose logs --tail=10 postgres
+
+# 检查redis状态
+sudo docker compose ps redis
+sudo docker compose logs --tail=10 redis
+
+# 测试连接
+sudo docker exec enterprise-ai-postgres pg_isready -U postgres
+sudo docker exec enterprise-ai-redis redis-cli ping
+
+# ============================================
+# 步骤4: 启动mcp-gateway
+# ============================================
+
+# 启动mcp-gateway（忽略网络警告）
+sudo docker compose up -d mcp-gateway
+
+# 等待启动（约10秒）
+sleep 10
+
+# ============================================
+# 步骤5: 验证mcp-gateway状态
+# ============================================
+
+# 检查状态
+sudo docker compose ps mcp-gateway
+
+# 查看日志
+sudo docker compose logs --tail=50 mcp-gateway
+
+# 测试健康检查
+curl http://localhost:8001/api/health
+
+# ============================================
+# 步骤6: 如果启动失败，查看详细错误
+# ============================================
+
+# 查看完整日志
+sudo docker compose logs mcp-gateway
+
+# 检查容器是否在运行
+sudo docker ps | grep mcp-gateway
+
+# 如果容器存在但未运行，查看退出原因
+sudo docker inspect enterprise-ai-mcp-gateway | grep -A 10 "State"
+
+# ============================================
+# 步骤7: 如果需要重新构建
+# ============================================
+
+# 停止并删除容器
+sudo docker compose stop mcp-gateway
+sudo docker compose rm -f mcp-gateway
+
+# 重新构建并启动
+sudo docker compose up -d --build mcp-gateway
+
+# ============================================
+# 快速启动命令（一键执行）
+# ============================================
+
+# 启动所有基础服务
+sudo docker compose up -d postgres redis
+
+# 等待服务就绪
+sleep 20
+
+# 启动mcp-gateway
+sudo docker compose up -d mcp-gateway
+
+# 查看所有服务状态
+sudo docker compose ps
+

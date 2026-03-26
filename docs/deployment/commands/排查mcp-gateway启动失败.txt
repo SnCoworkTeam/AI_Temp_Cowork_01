@@ -1,0 +1,77 @@
+# 排查mcp-gateway启动失败
+# mcp-gateway容器一直在重启，需要查看日志找出问题
+
+cd /opt/enterprise-ai-platform
+
+# ============================================
+# 步骤1: 查看mcp-gateway日志
+# ============================================
+# 查看最近的日志
+sudo docker compose logs --tail=100 mcp-gateway
+
+# 或者直接查看容器日志
+sudo docker logs --tail=100 enterprise-ai-mcp-gateway
+
+# ============================================
+# 步骤2: 检查容器退出原因
+# ============================================
+# 查看容器详细信息
+sudo docker inspect enterprise-ai-mcp-gateway | grep -A 20 "State"
+
+# 查看退出码
+sudo docker inspect enterprise-ai-mcp-gateway | grep -A 5 "ExitCode"
+
+# ============================================
+# 步骤3: 常见问题检查
+# ============================================
+# 检查文件是否存在
+ls -la mcp-gateway/src/main.py
+ls -la shared_libs/
+ls -la database/
+
+# 检查环境变量
+sudo docker exec enterprise-ai-mcp-gateway env | grep -E "DB_|REDIS_|PYTHON"
+
+# 检查网络连接
+sudo docker exec enterprise-ai-mcp-gateway ping -c 2 postgres
+sudo docker exec enterprise-ai-mcp-gateway ping -c 2 redis
+
+# ============================================
+# 步骤4: 手动进入容器调试
+# ============================================
+# 停止容器（避免自动重启）
+sudo docker stop enterprise-ai-mcp-gateway
+
+# 以交互模式启动容器
+sudo docker compose run --rm mcp-gateway /bin/sh
+
+# 在容器内检查：
+# - Python环境
+# - 依赖是否安装
+# - 源代码是否存在
+# - 环境变量是否正确
+
+# ============================================
+# 步骤5: 检查依赖和配置
+# ============================================
+# 检查requirements.txt是否存在
+cat mcp-gateway/requirements.txt
+
+# 检查Dockerfile.dev是否正确
+head -50 mcp-gateway/Dockerfile.dev
+
+# 检查.env文件
+cat .env | grep -E "DB_|REDIS_|MCP"
+
+# ============================================
+# 步骤6: 重新构建并启动
+# ============================================
+# 如果发现问题，重新构建
+sudo docker compose build mcp-gateway
+
+# 然后启动
+sudo docker compose up -d mcp-gateway
+
+# 查看日志
+sudo docker compose logs -f mcp-gateway
+

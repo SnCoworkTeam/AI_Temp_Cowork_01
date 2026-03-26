@@ -1,0 +1,1070 @@
+# 平台自动化调试工作流程配置
+# 定义从错误检测到修复验证的完整调试工作流
+
+version: "1.0.0"
+last_updated: "2024-01-20T00:00:00Z"
+
+# ==================== 错误检测工作流 ====================
+error_detection_workflow:
+  name: "错误检测工作流"
+  description: "监控告警触发到调试任务创建的完整流程"
+  version: "1.0.0"
+  enabled: true
+  
+  # 工作流触发器
+  triggers:
+    - type: "monitoring_alert"
+      conditions:
+        - alert_level: ["error", "critical"]
+        - alert_category: ["error", "performance", "availability"]
+      description: "监控告警触发"
+    
+    - type: "error_log"
+      conditions:
+        - log_level: ["error", "exception", "fatal"]
+        - error_count_threshold: 5  # 5分钟内错误数超过阈值
+        - time_window_minutes: 5
+      description: "错误日志触发"
+    
+    - type: "manual_trigger"
+      conditions:
+        - requires_approval: true
+      description: "人工手动触发"
+  
+  # 工作流步骤
+  steps:
+    # 步骤1: 监控告警触发
+    - step_id: "monitor_alert_trigger"
+      name: "监控告警触发"
+      type: "trigger"
+      description: "接收来自监控系统的告警"
+      
+      actions:
+        - action: "receive_alert"
+          parameters:
+            source: "${alert_source}"
+            alert_id: "${alert_id}"
+            severity: "${alert_severity}"
+            message: "${alert_message}"
+            metadata: "${alert_metadata}"
+      
+      outputs:
+        - alert_id
+        - alert_severity
+        - alert_message
+        - service_name
+      
+      on_error:
+        action: "log_error"
+        retry: false
+    
+    # 步骤2: 错误日志分析
+    - step_id: "analyze_error_logs"
+      name: "错误日志分析"
+      type: "analysis"
+      description: "分析相关服务的错误日志"
+      
+      dependencies:
+        - monitor_alert_trigger
+      
+      actions:
+        - action: "collect_logs"
+          parameters:
+            service: "${service_name}"
+            log_level: ["error", "exception"]
+            time_range_minutes: 30
+            sources:
+              - loki
+              - service_logs
+              - sentry
+        
+        - action: "analyze_log_patterns"
+          parameters:
+            pattern_detection: true
+            error_grouping: true
+            frequency_analysis: true
+        
+        - action: "extract_error_context"
+          parameters:
+            include_stack_trace: true
+            include_request_context: true
+            include_user_context: false  # 保护用户隐私
+      
+      outputs:
+        - error_logs
+        - error_patterns
+        - error_frequency
+        - error_context
+      
+      conditions:
+        - if: "error_logs_count > 0"
+          then: "continue"
+        - else: "skip_to_manual_review"
+      
+      on_error:
+        action: "fallback_to_manual_review"
+        retry: true
+        max_retries: 2
+    
+    # 步骤3: 影响范围评估
+    - step_id: "assess_impact_scope"
+      name: "影响范围评估"
+      type: "assessment"
+      description: "评估错误的影响范围和严重程度"
+      
+      dependencies:
+        - analyze_error_logs
+      
+      actions:
+        - action: "identify_affected_services"
+          parameters:
+            check_dependencies: true
+            check_downstream: true
+            check_upstream: false
+        
+        - action: "assess_user_impact"
+          parameters:
+            check_active_users: true
+            check_business_scenarios: true
+            estimate_downtime: true
+        
+        - action: "calculate_impact_score"
+          parameters:
+            factors:
+              - user_count
+              - business_criticality
+              - data_impact
+              - service_dependency
+      
+      outputs:
+        - affected_services
+        - impact_score
+        - estimated_users_affected
+        - business_impact_level
+        - recommended_priority
+      
+      conditions:
+        - if: "impact_score >= 8"
+          then: "escalate_to_critical"
+        - elif: "impact_score >= 5"
+          then: "continue"
+        - else: "low_priority_queue"
+      
+      on_error:
+        action: "assume_high_impact"
+        retry: false
+    
+    # 步骤4: 调试任务创建
+    - step_id: "create_debug_task"
+      name: "创建调试任务"
+      type: "task_creation"
+      description: "创建调试任务并分配给分析器"
+      
+      dependencies:
+        - assess_impact_scope
+      
+      actions:
+        - action: "create_debug_task"
+          parameters:
+            error_report:
+              error_message: "${alert_message}"
+              error_traceback: "${error_context.stack_trace}"
+              context: "${error_context}"
+              metadata:
+                alert_id: "${alert_id}"
+                service: "${service_name}"
+                impact_score: "${impact_score}"
+                priority: "${recommended_priority}"
+            
+            priority: "${recommended_priority}"
+            assign_to: "auto_debug_system"
+        
+        - action: "notify_team"
+          parameters:
+            channels: ["slack", "email"]
+            severity: "${alert_severity}"
+            message: "调试任务已创建: ${task_id}"
+      
+      outputs:
+        - task_id
+        - task_status
+        - estimated_analysis_time
+      
+      conditions:
+        - if: "task_created_successfully"
+          then: "proceed_to_analysis"
+        - else: "retry_or_manual_fallback"
+      
+      on_error:
+        action: "create_manual_task"
+        retry: true
+        max_retries: 3
+
+# ==================== 分析诊断工作流 ====================
+analysis_diagnosis_workflow:
+  name: "分析诊断工作流"
+  description: "错误根因分析到修复方案生成的完整流程"
+  version: "1.0.0"
+  enabled: true
+  
+  # 工作流触发器
+  triggers:
+    - type: "task_status"
+      conditions:
+        - task_status: "pending"
+        - task_type: "error_analysis"
+      description: "调试任务就绪"
+  
+  # 工作流步骤
+  steps:
+    # 步骤1: 错误根因分析
+    - step_id: "root_cause_analysis"
+      name: "错误根因分析"
+      type: "analysis"
+      description: "使用平台错误分析器进行深度分析"
+      
+      dependencies:
+        - create_debug_task
+      
+      actions:
+        - action: "analyze_error"
+          parameters:
+            analyzer: "platform_error_analyzer"
+            error_message: "${error_message}"
+            error_traceback: "${error_traceback}"
+            context: "${context}"
+            metadata: "${metadata}"
+        
+        - action: "classify_error"
+          parameters:
+            categories:
+              - mcp_tool
+              - workflow_engine
+              - auth_authorization
+              - knowledge_base
+              - frontend_ui
+        
+        - action: "identify_root_cause"
+          parameters:
+            confidence_threshold: 0.7
+            analysis_depth: "deep"
+            include_correlation: true
+      
+      outputs:
+        - error_category
+        - error_type
+        - root_cause
+        - confidence_score
+        - related_components
+        - service_call_chain
+      
+      conditions:
+        - if: "confidence_score >= 0.8"
+          then: "high_confidence_proceed"
+        - elif: "confidence_score >= 0.6"
+          then: "medium_confidence_proceed"
+        - else: "low_confidence_manual_review"
+      
+      timeout: 300  # 5分钟
+      on_error:
+        action: "fallback_to_manual_analysis"
+        retry: false
+    
+    # 步骤2: 相关上下文收集
+    - step_id: "collect_context"
+      name: "相关上下文收集"
+      type: "data_collection"
+      description: "收集错误相关的上下文信息"
+      
+      dependencies:
+        - root_cause_analysis
+      
+      actions:
+        - action: "collect_service_metrics"
+          parameters:
+            services: "${related_components}"
+            time_range_minutes: 60
+            metrics:
+              - cpu_usage
+              - memory_usage
+              - response_time
+              - error_rate
+              - request_rate
+        
+        - action: "collect_service_logs"
+          parameters:
+            services: "${related_components}"
+            time_range_minutes: 60
+            log_levels: ["error", "warning", "info"]
+            sources: ["loki", "service_logs"]
+        
+        - action: "collect_deployment_history"
+          parameters:
+            services: "${related_components}"
+            lookback_hours: 24
+            include_config_changes: true
+        
+        - action: "collect_user_activity"
+          parameters:
+            anonymize: true  # 匿名化用户数据
+            time_range_minutes: 30
+            include_operations: true
+        
+        - action: "collect_external_dependencies"
+          parameters:
+            check_database: true
+            check_redis: true
+            check_external_apis: true
+      
+      outputs:
+        - service_metrics
+        - service_logs
+        - deployment_history
+        - user_activity_stats
+        - dependency_status
+        - context_summary
+      
+      conditions:
+        - if: "all_context_collected"
+          then: "continue"
+        - elif: "critical_context_collected"
+          then: "continue_with_warning"
+        - else: "request_more_context"
+      
+      timeout: 180  # 3分钟
+      on_error:
+        action: "use_available_context"
+        retry: true
+        max_retries: 2
+    
+    # 步骤3: 修复方案生成
+    - step_id: "generate_fix_plan"
+      name: "修复方案生成"
+      type: "planning"
+      description: "基于分析结果生成修复方案"
+      
+      dependencies:
+        - collect_context
+      
+      actions:
+        - action: "select_fix_strategy"
+          parameters:
+            error_category: "${error_category}"
+            error_type: "${error_type}"
+            context: "${context_summary}"
+            available_strategies:
+              - retry
+              - fallback
+              - recovery
+              - validation
+              - config_update
+              - cache_clear
+              - state_restore
+              - rollback
+        
+        - action: "generate_fix_plan"
+          parameters:
+            strategy: "${selected_strategy}"
+            steps: "auto_generate"
+            estimated_time: "auto_calculate"
+            risk_assessment: true
+            impact_analysis: true
+        
+        - action: "validate_fix_plan"
+          parameters:
+            check_feasibility: true
+            check_dependencies: true
+            check_rollback_capability: true
+      
+      outputs:
+        - fix_plan_id
+        - fix_strategy
+        - fix_steps
+        - estimated_time
+        - risk_level
+        - impact_assessment
+        - rollback_plan
+      
+      conditions:
+        - if: "risk_level == 'low' AND confidence_score >= 0.8"
+          then: "auto_approve"
+        - elif: "risk_level == 'medium'"
+          then: "require_approval"
+        - else: "require_manual_review"
+      
+      timeout: 120  # 2分钟
+      on_error:
+        action: "generate_basic_fix_plan"
+        retry: false
+    
+    # 步骤4: 风险评估计算
+    - step_id: "calculate_risk_assessment"
+      name: "风险评估计算"
+      type: "risk_analysis"
+      description: "计算修复方案的风险和影响"
+      
+      dependencies:
+        - generate_fix_plan
+      
+      actions:
+        - action: "calculate_fix_risk"
+          parameters:
+            fix_plan: "${fix_plan}"
+            current_context: "${context_summary}"
+            historical_data: true
+            factors:
+              - service_criticality
+              - user_impact
+              - data_risk
+              - rollback_capability
+        
+        - action: "calculate_fix_impact"
+          parameters:
+            fix_plan: "${fix_plan}"
+            affected_services: "${affected_services}"
+            business_scenarios: "${business_scenarios}"
+        
+        - action: "generate_risk_report"
+          parameters:
+            include_recommendations: true
+            include_mitigation: true
+      
+      outputs:
+        - risk_score
+        - risk_level
+        - risk_factors
+        - impact_score
+        - impact_level
+        - risk_recommendations
+        - requires_approval
+      
+      conditions:
+        - if: "risk_level == 'critical' OR impact_level == 'high'"
+          then: "require_manual_approval"
+        - elif: "risk_level == 'high'"
+          then: "require_senior_approval"
+        - else: "auto_approve_if_confidence_high"
+      
+      timeout: 60  # 1分钟
+      on_error:
+        action: "assume_high_risk"
+        retry: false
+
+# ==================== 修复执行工作流 ====================
+fix_execution_workflow:
+  name: "修复执行工作流"
+  description: "从修复方案审批到部署发布的完整流程"
+  version: "1.0.0"
+  enabled: true
+  
+  # 工作流触发器
+  triggers:
+    - type: "fix_plan_approved"
+      conditions:
+        - approval_status: "approved"
+        - fix_plan_id: "${fix_plan_id}"
+      description: "修复方案已批准"
+  
+  # 工作流步骤
+  steps:
+    # 步骤1: 修复方案审批
+    - step_id: "fix_plan_approval"
+      name: "修复方案审批"
+      type: "approval"
+      description: "等待人工审批修复方案"
+      
+      dependencies:
+        - calculate_risk_assessment
+      
+      actions:
+        - action: "create_approval_request"
+          parameters:
+            fix_plan_id: "${fix_plan_id}"
+            risk_assessment: "${risk_assessment}"
+            impact_analysis: "${impact_analysis}"
+            approvers:
+              - team: "${service_team}"
+              - role: "tech_lead"
+              - role: "on_call"
+        
+        - action: "send_approval_notification"
+          parameters:
+            channels: ["slack", "email"]
+            urgency: "${risk_level}"
+            deadline_minutes: 30
+        
+        - action: "wait_for_approval"
+          parameters:
+            timeout_minutes: 30
+            auto_approval_if_low_risk: true
+            escalation_after_minutes: 15
+      
+      outputs:
+        - approval_status
+        - approver
+        - approval_reason
+        - approval_timestamp
+      
+      conditions:
+        - if: "approval_status == 'approved'"
+          then: "proceed_to_execution"
+        - elif: "approval_status == 'rejected'"
+          then: "reject_and_review"
+        - elif: "approval_status == 'pending' AND timeout"
+          then: "escalate_or_auto_approve"
+        - else: "wait_for_approval"
+      
+      timeout: 1800  # 30分钟
+      on_error:
+        action: "escalate_approval"
+        retry: false
+    
+    # 步骤2: 代码/配置修改
+    - step_id: "apply_fix_changes"
+      name: "代码/配置修改"
+      type: "execution"
+      description: "执行修复方案的代码或配置修改"
+      
+      dependencies:
+        - fix_plan_approval
+      
+      conditions:
+        - if: "approval_status == 'approved'"
+          then: "continue"
+        - else: "skip"
+      
+      actions:
+        - action: "backup_current_state"
+          parameters:
+            backup_type: "full"
+            include_config: true
+            include_data: false  # 只备份配置，不备份数据
+            backup_location: "backups/before_fix_${fix_plan_id}"
+        
+        - action: "execute_fix_strategy"
+          parameters:
+            strategy: "${fix_strategy}"
+            fix_steps: "${fix_steps}"
+            service: "${service_name}"
+            dry_run: false
+        
+        - action: "apply_code_changes"
+          parameters:
+            changes: "${fix_steps.code_changes}"
+            validation: true
+            test_before_apply: true
+        
+        - action: "apply_config_changes"
+          parameters:
+            changes: "${fix_steps.config_changes}"
+            validation: true
+            backup_before_change: true
+        
+        - action: "verify_changes_applied"
+          parameters:
+            check_service_health: true
+            check_config_validity: true
+            check_dependencies: true
+      
+      outputs:
+        - fix_applied
+        - backup_location
+        - change_summary
+        - verification_status
+      
+      conditions:
+        - if: "fix_applied AND verification_status == 'success'"
+          then: "proceed_to_testing"
+        - elif: "fix_applied AND verification_status == 'failed'"
+          then: "rollback_changes"
+        - else: "retry_or_manual_intervention"
+      
+      timeout: 600  # 10分钟
+      on_error:
+        action: "rollback_changes"
+        retry: false
+    
+    # 步骤3: 测试验证执行
+    - step_id: "execute_test_validation"
+      name: "测试验证执行"
+      type: "testing"
+      description: "执行测试验证修复效果"
+      
+      dependencies:
+        - apply_fix_changes
+      
+      actions:
+        - action: "run_functional_tests"
+          parameters:
+            test_type: "platform_functional"
+            services: "${affected_services}"
+            test_scenarios:
+              - mcp_tool_functionality
+              - workflow_execution
+              - knowledge_base_search
+              - user_authentication
+        
+        - action: "run_integration_tests"
+          parameters:
+            test_type: "integration"
+            scenarios:
+              - end_to_end_business_flow
+              - service_call_chain
+              - data_consistency
+        
+        - action: "run_fix_specific_tests"
+          parameters:
+            test_type: "fix_specific"
+            scenarios:
+              - error_reproduction
+              - boundary_conditions
+              - concurrent_scenarios
+        
+        - action: "run_health_checks"
+          parameters:
+            services: "${affected_services}"
+            checks:
+              - service_health
+              - database_connection
+              - external_dependencies
+              - resource_usage
+        
+        - action: "validate_fix_effectiveness"
+          parameters:
+            original_error: "${original_error}"
+            test_results: "${test_results}"
+            health_check_results: "${health_check_results}"
+      
+      outputs:
+        - test_results
+        - health_check_results
+        - fix_effectiveness_score
+        - test_passed
+      
+      conditions:
+        - if: "test_passed AND fix_effectiveness_score >= 0.8"
+          then: "proceed_to_deployment"
+        - elif: "test_passed AND fix_effectiveness_score >= 0.6"
+          then: "proceed_with_caution"
+        - else: "fix_not_effective_rollback"
+      
+      timeout: 900  # 15分钟
+      on_error:
+        action: "mark_tests_failed"
+        retry: false
+    
+    # 步骤4: 部署发布管理
+    - step_id: "deployment_release"
+      name: "部署发布管理"
+      type: "deployment"
+      description: "管理修复的部署和发布"
+      
+      dependencies:
+        - execute_test_validation
+      
+      conditions:
+        - if: "test_passed"
+          then: "continue"
+        - else: "skip_deployment"
+      
+      actions:
+        - action: "create_deployment_plan"
+          parameters:
+            version: "fix_${fix_plan_id}"
+            services: "${affected_services}"
+            strategy: "gradual"
+            rollback_plan: "${rollback_plan}"
+        
+        - action: "execute_deployment"
+          parameters:
+            plan_id: "${deployment_plan_id}"
+            dry_run: false
+            monitor_deployment: true
+        
+        - action: "monitor_deployment_health"
+          parameters:
+            duration_minutes: 30
+            check_interval_seconds: 30
+            health_checks:
+              - service_startup
+              - performance_baseline
+              - error_rate
+              - user_impact
+        
+        - action: "verify_deployment_success"
+          parameters:
+            verify_service_health: true
+            verify_functionality: true
+            verify_performance: true
+      
+      outputs:
+        - deployment_plan_id
+        - deployment_status
+        - deployment_health_status
+        - deployment_verified
+      
+      conditions:
+        - if: "deployment_status == 'completed' AND deployment_verified"
+          then: "proceed_to_validation"
+        - elif: "deployment_status == 'failed'"
+          then: "rollback_deployment"
+        - else: "monitor_and_wait"
+      
+      timeout: 1800  # 30分钟
+      on_error:
+        action: "rollback_deployment"
+        retry: false
+
+# ==================== 效果验证工作流 ====================
+validation_workflow:
+  name: "效果验证工作流"
+  description: "从监控指标对比到经验总结的完整验证流程"
+  version: "1.0.0"
+  enabled: true
+  
+  # 工作流触发器
+  triggers:
+    - type: "deployment_completed"
+      conditions:
+        - deployment_status: "completed"
+        - deployment_verified: true
+      description: "部署完成且已验证"
+  
+  # 工作流步骤
+  steps:
+    # 步骤1: 监控指标对比
+    - step_id: "compare_monitoring_metrics"
+      name: "监控指标对比"
+      type: "validation"
+      description: "对比修复前后的监控指标"
+      
+      dependencies:
+        - deployment_release
+      
+      actions:
+        - action: "collect_baseline_metrics"
+          parameters:
+            time_range: "before_fix"
+            duration_hours: 24
+            metrics:
+              - error_rate
+              - response_time
+              - throughput
+              - resource_usage
+              - user_satisfaction
+        
+        - action: "collect_current_metrics"
+          parameters:
+            time_range: "after_fix"
+            duration_hours: 1
+            metrics:
+              - error_rate
+              - response_time
+              - throughput
+              - resource_usage
+              - user_satisfaction
+        
+        - action: "compare_metrics"
+          parameters:
+            baseline: "${baseline_metrics}"
+            current: "${current_metrics}"
+            thresholds:
+              error_rate_improvement: 50  # 错误率改善50%
+              response_time_improvement: 20  # 响应时间改善20%
+              performance_degradation_limit: 10  # 性能下降不超过10%
+        
+        - action: "detect_performance_anomalies"
+          parameters:
+            baseline: "${baseline_metrics}"
+            current: "${current_metrics}"
+            anomaly_threshold: 3  # 3-sigma规则
+      
+      outputs:
+        - baseline_metrics
+        - current_metrics
+        - metric_comparison
+        - improvement_percentage
+        - performance_status
+        - anomalies_detected
+      
+      conditions:
+        - if: "improvement_percentage >= 50 AND performance_status == 'improved'"
+          then: "fix_highly_effective"
+        - elif: "improvement_percentage >= 20 AND performance_status == 'improved'"
+          then: "fix_effective"
+        - elif: "performance_status == 'degraded'"
+          then: "fix_caused_issues"
+        - else: "fix_minimal_impact"
+      
+      timeout: 600  # 10分钟
+      on_error:
+        action: "use_partial_metrics"
+        retry: false
+    
+    # 步骤2: 用户反馈收集
+    - step_id: "collect_user_feedback"
+      name: "用户反馈收集"
+      type: "feedback_collection"
+      description: "收集用户对修复效果的反馈"
+      
+      dependencies:
+        - compare_monitoring_metrics
+      
+      actions:
+        - action: "collect_user_experience_metrics"
+          parameters:
+            time_range_hours: 24
+            metrics:
+              - operation_success_rate
+              - response_time_perception
+              - error_encountered
+              - user_satisfaction
+        
+        - action: "analyze_user_activity"
+          parameters:
+            time_range_hours: 24
+            anonymize: true
+            include_operations: true
+            include_errors: true
+        
+        - action: "check_user_support_tickets"
+          parameters:
+            time_range_hours: 24
+            keywords:
+              - "error"
+              - "broken"
+              - "not working"
+              - "fix"
+        
+        - action: "calculate_user_satisfaction_score"
+          parameters:
+            success_rate_weight: 0.7
+            response_time_weight: 0.3
+      
+      outputs:
+        - user_experience_metrics
+        - user_satisfaction_score
+        - support_ticket_count
+        - user_feedback_summary
+      
+      conditions:
+        - if: "user_satisfaction_score >= 80"
+          then: "positive_user_feedback"
+        - elif: "user_satisfaction_score >= 60"
+          then: "neutral_user_feedback"
+        - else: "negative_user_feedback"
+      
+      timeout: 300  # 5分钟
+      on_error:
+        action: "skip_user_feedback"
+        retry: false
+    
+    # 步骤3: 业务影响评估
+    - step_id: "assess_business_impact"
+      name: "业务影响评估"
+      type: "business_analysis"
+      description: "评估修复对业务的影响"
+      
+      dependencies:
+        - collect_user_feedback
+      
+      actions:
+        - action: "analyze_business_metrics"
+          parameters:
+            time_range_hours: 24
+            metrics:
+              - transaction_success_rate
+              - revenue_impact
+              - customer_retention
+              - service_availability
+        
+        - action: "compare_business_metrics"
+          parameters:
+            before_fix: "${baseline_business_metrics}"
+            after_fix: "${current_business_metrics}"
+        
+        - action: "calculate_business_impact_score"
+          parameters:
+            factors:
+              - service_availability_improvement
+              - error_reduction_impact
+              - user_satisfaction_impact
+              - revenue_impact
+        
+        - action: "generate_business_report"
+          parameters:
+            include_recommendations: true
+            include_roi_analysis: true
+      
+      outputs:
+        - business_metrics_comparison
+        - business_impact_score
+        - roi_estimate
+        - business_report
+      
+      conditions:
+        - if: "business_impact_score >= 8"
+          then: "high_business_value"
+        - elif: "business_impact_score >= 5"
+          then: "medium_business_value"
+        - else: "low_business_value"
+      
+      timeout: 300  # 5分钟
+      on_error:
+        action: "skip_business_analysis"
+        retry: false
+    
+    # 步骤4: 经验总结记录
+    - step_id: "document_lessons_learned"
+      name: "经验总结记录"
+      type: "documentation"
+      description: "记录修复经验和教训"
+      
+      dependencies:
+        - assess_business_impact
+      
+      actions:
+        - action: "create_incident_report"
+          parameters:
+            incident_id: "${incident_id}"
+            error_analysis: "${error_analysis}"
+            root_cause: "${root_cause}"
+            fix_applied: "${fix_applied}"
+            fix_effectiveness: "${fix_effectiveness_score}"
+            lessons_learned: "auto_generate"
+        
+        - action: "update_knowledge_base"
+          parameters:
+            error_pattern: "${error_pattern}"
+            root_cause: "${root_cause}"
+            fix_strategy: "${fix_strategy}"
+            fix_effectiveness: "${fix_effectiveness_score}"
+            tags:
+              - "${error_category}"
+              - "${service_name}"
+              - "auto_fixed"
+        
+        - action: "update_error_analyzer"
+          parameters:
+            error_pattern: "${error_pattern}"
+            confidence: "${confidence_score}"
+            fix_strategy: "${fix_strategy}"
+            success: true
+        
+        - action: "update_fix_strategies"
+          parameters:
+            strategy: "${fix_strategy}"
+            effectiveness: "${fix_effectiveness_score}"
+            context: "${context_summary}"
+        
+        - action: "notify_team"
+          parameters:
+            channels: ["slack", "email"]
+            message: "修复已完成并验证: ${fix_plan_id}"
+            include_report: true
+      
+      outputs:
+        - incident_report_id
+        - knowledge_base_entry_id
+        - lessons_learned
+        - improvement_suggestions
+      
+      conditions:
+        - if: "fix_effectiveness_score >= 0.8"
+          then: "mark_as_success"
+        - elif: "fix_effectiveness_score >= 0.6"
+          then: "mark_as_partial_success"
+        - else: "mark_as_needs_improvement"
+      
+      timeout: 180  # 3分钟
+      on_error:
+        action: "log_basic_summary"
+        retry: false
+
+# ==================== 工作流配置 ====================
+workflow_config:
+  # 工作流执行配置
+  execution:
+    max_concurrent_workflows: 5
+    default_timeout_minutes: 60
+    retry_policy:
+      max_retries: 3
+      retry_delay_seconds: 60
+      exponential_backoff: true
+    
+    # 错误处理
+    error_handling:
+      on_step_failure: "rollback_step"
+      on_workflow_failure: "create_incident"
+      notification_on_failure: true
+  
+  # 工作流监控
+  monitoring:
+    enabled: true
+    metrics_collection: true
+    log_all_steps: true
+    alert_on_slow_execution: true
+    slow_execution_threshold_minutes: 30
+  
+  # 工作流版本控制
+  version_control:
+    enabled: true
+    track_changes: true
+    rollback_capability: true
+  
+  # 工作流权限
+  permissions:
+    can_execute_workflows: ["auto_debug_system", "admin"]
+    can_modify_workflows: ["admin"]
+    can_view_workflows: ["auto_debug_system", "admin", "dev_team"]
+
+# ==================== 工作流依赖关系 ====================
+workflow_dependencies:
+  # 工作流之间的依赖关系
+  dependencies:
+    - workflow: "error_detection_workflow"
+      triggers: "analysis_diagnosis_workflow"
+      condition: "task_created_successfully"
+    
+    - workflow: "analysis_diagnosis_workflow"
+      triggers: "fix_execution_workflow"
+      condition: "fix_plan_approved"
+    
+    - workflow: "fix_execution_workflow"
+      triggers: "validation_workflow"
+      condition: "deployment_completed"
+
+# ==================== 环境特定配置 ====================
+environment_configs:
+  development:
+    execution:
+      auto_approval_enabled: true
+      approval_timeout_minutes: 5
+      skip_manual_review: true
+    
+    validation:
+      test_timeout_minutes: 5
+      reduced_test_coverage: true
+  
+  staging:
+    execution:
+      auto_approval_enabled: false
+      approval_timeout_minutes: 15
+      require_tech_lead_approval: true
+    
+    validation:
+      test_timeout_minutes: 15
+      full_test_coverage: true
+  
+  production:
+    execution:
+      auto_approval_enabled: false
+      approval_timeout_minutes: 30
+      require_senior_approval: true
+      require_dual_approval: true  # 双重审批
+    
+    validation:
+      test_timeout_minutes: 30
+      full_test_coverage: true
+      extended_validation_period_hours: 24
+

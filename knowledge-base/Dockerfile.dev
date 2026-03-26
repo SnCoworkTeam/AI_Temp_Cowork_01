@@ -1,0 +1,56 @@
+# 开发环境Dockerfile
+FROM python:3.11-slim-bookworm
+
+WORKDIR /app
+
+# 配置 Debian 镜像源（使用清华镜像，保持原有 Debian 版本）
+RUN sed -i 's|http://deb.debian.org|https://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || \
+    sed -i 's|http://deb.debian.org|https://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list 2>/dev/null || true
+
+# 安装系统依赖和开发工具
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    curl \
+    vim \
+    && rm -rf /var/lib/apt/lists/*
+
+# 配置pip使用国内镜像源（清华镜像）
+RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple && \
+    pip config set global.timeout 300 && \
+    pip config set global.retries 5
+
+# 先复制shared_libs并安装（如果存在requirements.txt）
+COPY shared_libs/requirements.txt* /tmp/shared_libs-requirements.txt
+RUN if [ -f /tmp/shared_libs-requirements.txt ]; then \
+        pip install --no-cache-dir --upgrade pip && \
+        pip install --no-cache-dir -r /tmp/shared_libs-requirements.txt; \
+    fi
+
+# 复制依赖文件
+COPY knowledge-base/requirements.txt .
+
+# 安装Python依赖
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# 安装shared_libs包
+COPY shared_libs /tmp/shared_libs
+RUN pip install -e /tmp/shared_libs
+
+# 复制应用代码
+COPY knowledge-base/ .
+
+# 创建存储目录
+RUN mkdir -p documents chroma_db && \
+    chmod -R 777 documents chroma_db
+
+# 设置PYTHONPATH
+ENV PYTHONPATH=/app:${PYTHONPATH}
+
+# 暴露端口
+EXPOSE 8004
+
+# 开发模式启动（支持热重载）
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8004", "--reload"]
+

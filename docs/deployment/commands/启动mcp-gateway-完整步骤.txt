@@ -1,0 +1,37 @@
+# 启动mcp-gateway服务的完整步骤
+# 在服务器上按顺序执行
+
+cd /opt/enterprise-ai-platform
+
+# 步骤1: 检查docker-compose.yml是否已更新（应该没有version警告）
+head -3 docker-compose.yml
+
+# 步骤2: 检查mcp-gateway容器是否存在
+sudo docker ps -a | grep mcp-gateway
+
+# 步骤3: 检查mcp-gateway镜像是否存在
+sudo docker images | grep mcp-gateway
+
+# 步骤4: 如果容器不存在，需要先构建
+# 如果镜像不存在，执行构建
+sudo docker compose build mcp-gateway
+
+# 步骤5: 启动mcp-gateway服务
+sudo docker compose up -d mcp-gateway
+
+# 步骤6: 等待几秒后检查状态
+sleep 5
+sudo docker compose ps mcp-gateway
+
+# 步骤7: 查看启动日志
+sudo docker compose logs --tail=50 mcp-gateway
+
+# 步骤8: 如果启动失败，查看详细错误
+sudo docker compose logs mcp-gateway
+
+# 步骤9: 测试健康检查
+curl http://localhost:8001/api/health
+
+# 如果以上步骤都失败，尝试强制重新构建和启动
+sudo docker compose up -d --build --force-recreate mcp-gateway
+

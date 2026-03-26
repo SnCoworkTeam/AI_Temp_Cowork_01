@@ -1,0 +1,44 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2024-01-20T00:00:00Z",
+  "conflicts": [
+    {
+      "id": "CONFLICT-001",
+      "type": "version",
+      "status": "resolved",
+      "description": "FastAPI版本不一致",
+      "affected_services": ["mcp-gateway", "workflow-engine"],
+      "details": {
+        "service_a": {
+          "name": "mcp-gateway",
+          "version": "fastapi==0.100.0"
+        },
+        "service_b": {
+          "name": "workflow-engine",
+          "version": "fastapi==0.104.0"
+        }
+      },
+      "resolution": {
+        "action": "统一版本",
+        "target_version": "fastapi==0.104.0",
+        "resolved_at": "2024-01-20T00:00:00Z",
+        "resolved_by": "架构团队"
+      }
+    }
+  ],
+  "statistics": {
+    "total": 1,
+    "resolved": 1,
+    "pending": 0,
+    "critical": 0
+  }
+}
+
+
+
+
+
+
+
+
+

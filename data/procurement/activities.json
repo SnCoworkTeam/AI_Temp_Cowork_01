@@ -1,0 +1,229 @@
+[
+  {
+    "id": "activity:procurement:create_po",
+    "name": "创建采购订单",
+    "description": "在SAP系统中创建标准采购订单，包括选择供应商、物料、数量、价格等信息",
+    "activity_type": "action",
+    "business_domain": "procurement",
+    "success_criteria": "PO号生成且状态为已保存",
+    "prerequisites": [
+      "供应商已存在",
+      "物料主数据已维护",
+      "价格信息已确认"
+    ],
+    "estimated_time": "5分钟",
+    "risk_level": "low",
+    "owner_dept": "采购部",
+    "source_type": "document",
+    "source_id": "sap_mm_manual",
+    "vector_entity_uri": "activity://procurement/activity:procurement:create_po",
+    "embedding_version": "1.0"
+  },
+  {
+    "id": "activity:procurement:query_po",
+    "name": "查询采购订单",
+    "description": "根据订单号、供应商、物料、日期等条件查询采购订单信息",
+    "activity_type": "query",
+    "business_domain": "procurement",
+    "success_criteria": "返回符合条件的订单列表",
+    "prerequisites": [],
+    "estimated_time": "1分钟",
+    "risk_level": "low",
+    "owner_dept": "采购部",
+    "source_type": "document",
+    "source_id": "sap_mm_manual",
+    "vector_entity_uri": "activity://procurement/activity:procurement:query_po",
+    "embedding_version": "1.0"
+  },
+  {
+    "id": "activity:procurement:approve_po",
+    "name": "审批采购订单",
+    "description": "对已创建的采购订单进行审批，包括金额审批、供应商资质审批等",
+    "activity_type": "approval",
+    "business_domain": "procurement",
+    "success_criteria": "订单状态变为已审批",
+    "prerequisites": [
+      "订单已创建",
+      "未审批"
+    ],
+    "estimated_time": "3分钟",
+    "risk_level": "medium",
+    "owner_dept": "采购部",
+    "source_type": "document",
+    "source_id": "approval_workflow",
+    "vector_entity_uri": "activity://procurement/activity:procurement:approve_po",
+    "embedding_version": "1.0"
+  },
+  {
+    "id": "activity:procurement:handle_exception",
+    "name": "处理采购异常",
+    "description": "处理采购过程中的异常情况，如订单延迟、供应商问题、物料短缺等",
+    "activity_type": "action",
+    "business_domain": "procurement",
+    "success_criteria": "异常已处理并记录",
+    "prerequisites": [
+      "异常已识别"
+    ],
+    "estimated_time": "15分钟",
+    "risk_level": "high",
+    "owner_dept": "采购部",
+    "source_type": "log",
+    "source_id": "exception_log",
+    "vector_entity_uri": "activity://procurement/activity:procurement:handle_exception",
+    "embedding_version": "1.0"
+  },
+  {
+    "id": "activity:procurement:generate_report",
+    "name": "生成采购报告",
+    "description": "生成采购相关的统计报告，如月度采购统计、供应商绩效、物料采购趋势等",
+    "activity_type": "query",
+    "business_domain": "procurement",
+    "success_criteria": "报告已生成",
+    "prerequisites": [
+      "有采购数据"
+    ],
+    "estimated_time": "10分钟",
+    "risk_level": "low",
+    "owner_dept": "采购部",
+    "source_type": "document",
+    "source_id": "report_template",
+    "vector_entity_uri": "activity://procurement/activity:procurement:generate_report",
+    "embedding_version": "1.0"
+  },
+  {
+    "id": "activity:procurement:check_inventory",
+    "name": "检查库存",
+    "description": "检查物料的当前库存情况，包括可用库存、在途库存、预留库存等",
+    "activity_type": "query",
+    "business_domain": "procurement",
+    "success_criteria": "返回库存信息",
+    "prerequisites": [
+      "物料编码"
+    ],
+    "estimated_time": "2分钟",
+    "risk_level": "low",
+    "owner_dept": "采购部",
+    "source_type": "document",
+    "source_id": "sap_mm_manual",
+    "vector_entity_uri": "activity://procurement/activity:procurement:check_inventory",
+    "embedding_version": "1.0"
+  },
+  {
+    "id": "activity:procurement:contact_supplier",
+    "name": "联系供应商",
+    "description": "与供应商进行沟通，包括询价、催货、问题反馈等",
+    "activity_type": "notification",
+    "business_domain": "procurement",
+    "success_criteria": "供应商已联系并收到回复",
+    "prerequisites": [
+      "供应商联系方式"
+    ],
+    "estimated_time": "5分钟",
+    "risk_level": "low",
+    "owner_dept": "采购部",
+    "source_type": "conversation",
+    "source_id": "supplier_contact_log",
+    "vector_entity_uri": "activity://procurement/activity:procurement:contact_supplier",
+    "embedding_version": "1.0"
+  },
+  {
+    "id": "activity:procurement:update_po",
+    "name": "更新采购订单",
+    "description": "更新已创建的采购订单信息，如修改数量、价格、交货日期等",
+    "activity_type": "action",
+    "business_domain": "procurement",
+    "success_criteria": "订单信息已更新",
+    "prerequisites": [
+      "订单已创建",
+      "未审批或已审批但可修改"
+    ],
+    "estimated_time": "3分钟",
+    "risk_level": "medium",
+    "owner_dept": "采购部",
+    "source_type": "document",
+    "source_id": "sap_mm_manual",
+    "vector_entity_uri": "activity://procurement/activity:procurement:update_po",
+    "embedding_version": "1.0"
+  },
+  {
+    "id": "activity:procurement:receive_goods",
+    "name": "收货确认",
+    "description": "确认供应商已交货，包括数量核对、质量检查、入库确认等",
+    "activity_type": "action",
+    "business_domain": "procurement",
+    "success_criteria": "收货已确认并入库",
+    "prerequisites": [
+      "订单已审批",
+      "货物已到达"
+    ],
+    "estimated_time": "10分钟",
+    "risk_level": "medium",
+    "owner_dept": "仓储部",
+    "source_type": "log",
+    "source_id": "receiving_log",
+    "vector_entity_uri": "activity://procurement/activity:procurement:receive_goods",
+    "embedding_version": "1.0"
+  },
+  {
+    "id": "activity:procurement:process_payment",
+    "name": "处理付款",
+    "description": "处理采购订单的付款流程，包括发票核对、付款申请、付款执行等",
+    "activity_type": "action",
+    "business_domain": "procurement",
+    "success_criteria": "付款已处理",
+    "prerequisites": [
+      "收货已确认",
+      "发票已收到"
+    ],
+    "estimated_time": "5分钟",
+    "risk_level": "high",
+    "owner_dept": "财务部",
+    "source_type": "document",
+    "source_id": "payment_workflow",
+    "vector_entity_uri": "activity://procurement/activity:procurement:process_payment",
+    "embedding_version": "1.0"
+  },
+  {
+    "id": "activity:procurement:hold_payment",
+    "name": "暂停付款",
+    "description": "因质量问题或其他原因暂停对供应商的付款，包括更新付款状态、记录暂停原因等",
+    "activity_type": "approval",
+    "business_domain": "procurement",
+    "success_criteria": "付款状态更新为暂停，相关订单已标记",
+    "prerequisites": [
+      "质量问题已确认",
+      "订单已创建"
+    ],
+    "estimated_time": "15-30分钟",
+    "risk_level": "high",
+    "owner_dept": "财务部",
+    "source_type": "document",
+    "source_id": "payment_workflow",
+    "vector_entity_uri": "activity://procurement/activity:procurement:hold_payment",
+    "embedding_version": "1.0",
+    "input_entities": ["Supplier", "QualityIssue", "PurchaseOrder"],
+    "output_entities": ["PaymentHold"],
+    "system_involved": ["SAP", "财务系统"]
+  },
+  {
+    "id": "activity:quality:verify_issue",
+    "name": "验证质量问题",
+    "description": "验证供应商的质量问题，包括检查历史质量记录、分析问题严重程度、评估影响范围等",
+    "activity_type": "query",
+    "business_domain": "procurement",
+    "success_criteria": "质量问题已确认，影响范围已评估",
+    "prerequisites": [
+      "质量问题已报告"
+    ],
+    "estimated_time": "10分钟",
+    "risk_level": "medium",
+    "owner_dept": "质检部",
+    "source_type": "log",
+    "source_id": "quality_log",
+    "vector_entity_uri": "activity://quality/activity:quality:verify_issue",
+    "embedding_version": "1.0",
+    "input_entities": ["Supplier", "QualityIssue"],
+    "output_entities": ["QualityReport"],
+    "system_involved": ["质量系统", "SAP"]
+  }
+]

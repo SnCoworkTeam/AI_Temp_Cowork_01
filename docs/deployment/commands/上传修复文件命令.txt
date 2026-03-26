@@ -1,0 +1,35 @@
+# 上传修复后的requirements.txt文件到服务器
+# 在本地项目根目录执行以下命令
+
+# SSH密钥路径
+KEY="E:\enterprise-ai-platform\enterprise_ai_platform.pem"
+SERVER="ubuntu@43.143.139.197"
+
+# 1. 上传shared_libs/requirements.txt
+scp -i "$KEY" -o StrictHostKeyChecking=no shared_libs/requirements.txt "$SERVER:/opt/enterprise-ai-platform/shared_libs/"
+
+# 2. 上传mcp-gateway/requirements.txt
+scp -i "$KEY" -o StrictHostKeyChecking=no mcp-gateway/requirements.txt "$SERVER:/opt/enterprise-ai-platform/mcp-gateway/"
+
+# 3. 上传workflow-engine/requirements.txt
+scp -i "$KEY" -o StrictHostKeyChecking=no workflow-engine/requirements.txt "$SERVER:/opt/enterprise-ai-platform/workflow-engine/"
+
+# 4. 上传auth-service/requirements.txt
+scp -i "$KEY" -o StrictHostKeyChecking=no auth-service/requirements.txt "$SERVER:/opt/enterprise-ai-platform/auth-service/"
+
+# 5. 上传knowledge-base/requirements.txt
+scp -i "$KEY" -o StrictHostKeyChecking=no knowledge-base/requirements.txt "$SERVER:/opt/enterprise-ai-platform/knowledge-base/"
+
+# 6. 上传metadata-service/requirements.txt
+scp -i "$KEY" -o StrictHostKeyChecking=no metadata-service/requirements.txt "$SERVER:/opt/enterprise-ai-platform/metadata-service/"
+
+# 7. 上传database/requirements.txt
+scp -i "$KEY" -o StrictHostKeyChecking=no database/requirements.txt "$SERVER:/opt/enterprise-ai-platform/database/"
+
+# 8. 上传修复后的README.md（如果还没有）
+scp -i "$KEY" -o StrictHostKeyChecking=no README.md "$SERVER:/opt/enterprise-ai-platform/"
+
+# 验证上传结果
+echo "验证上传的文件..."
+ssh -i "$KEY" -o StrictHostKeyChecking=no "$SERVER" "cd /opt/enterprise-ai-platform && grep -h 'pydantic>=' shared_libs/requirements.txt mcp-gateway/requirements.txt | head -2"
+

@@ -1,0 +1,41 @@
+# 检查容器内shared_libs挂载情况
+# 在服务器上执行以下命令
+
+cd /opt/enterprise-ai-platform
+
+# 1. 检查容器内的shared_libs目录
+echo "=== Container /shared_libs directory ==="
+sudo docker exec enterprise-ai-mcp-gateway ls -la /shared_libs 2>&1
+
+# 2. 检查关键文件是否存在
+echo ""
+echo "=== Checking key files ==="
+sudo docker exec enterprise-ai-mcp-gateway ls -la /shared_libs/__init__.py 2>&1
+sudo docker exec enterprise-ai-mcp-gateway ls -la /shared_libs/schemas/monitoring_schemas.py 2>&1
+sudo docker exec enterprise-ai-mcp-gateway ls -la /shared_libs/common/logger.py 2>&1
+
+# 3. 检查PYTHONPATH环境变量
+echo ""
+echo "=== PYTHONPATH ==="
+sudo docker exec enterprise-ai-mcp-gateway env | grep PYTHONPATH
+
+# 4. 测试Python导入
+echo ""
+echo "=== Testing Python import ==="
+sudo docker exec enterprise-ai-mcp-gateway python -c "import sys; print('Python paths:'); [print(p) for p in sys.path]" 2>&1
+
+# 5. 测试shared_libs导入
+echo ""
+echo "=== Testing shared_libs import ==="
+sudo docker exec enterprise-ai-mcp-gateway python -c "import sys; sys.path.insert(0, '/shared_libs'); import shared_libs; print('shared_libs imported successfully'); print('Location:', shared_libs.__file__)" 2>&1
+
+# 6. 测试schemas导入
+echo ""
+echo "=== Testing schemas import ==="
+sudo docker exec enterprise-ai-mcp-gateway python -c "import sys; sys.path.insert(0, '/shared_libs'); from shared_libs.schemas.monitoring_schemas import ServiceMonitoringData; print('monitoring_schemas imported successfully')" 2>&1
+
+# ============================================
+# 一键检查命令
+# ============================================
+cd /opt/enterprise-ai-platform && echo "=== Container /shared_libs ===" && sudo docker exec enterprise-ai-mcp-gateway ls -la /shared_libs 2>&1 && echo "" && echo "=== PYTHONPATH ===" && sudo docker exec enterprise-ai-mcp-gateway env | grep PYTHONPATH && echo "" && echo "=== Test Import ===" && sudo docker exec enterprise-ai-mcp-gateway python -c "import sys; sys.path.insert(0, '/shared_libs'); import shared_libs; print('OK')" 2>&1
+

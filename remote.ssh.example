@@ -1,0 +1,12 @@
+# SSH 服务器配置文件
+# 复制此文件为 remote.ssh 并修改配置信息
+
+Host enterprise-ai-server
+    HostName 43.143.139.197
+    User ubuntu
+    IdentityFile enterprise_ai_platform.pem
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+

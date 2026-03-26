@@ -1,0 +1,19 @@
+# 发布脚本依赖
+
+# 版本管理
+semantic-version>=2.10.0
+
+# Git操作（使用git命令，无需Python库）
+
+# 其他工具
+# jq: JSON处理（需要单独安装）
+# docker: Docker操作（需要单独安装）
+
+
+
+
+
+
+
+
+

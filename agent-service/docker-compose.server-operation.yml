@@ -1,0 +1,44 @@
+# 服务器操作智能体服务配置
+# 用于部署到服务器上的Docker Compose配置
+
+version: '3.8'
+
+services:
+  server-operation-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: server-operation-agent
+    environment:
+      # SSH配置
+      - SSH_HOST=43.143.139.197
+      - SSH_USERNAME=ubuntu
+      - SSH_PRIVATE_KEY_PATH=/opt/enterprise-ai-platform/enterprise_ai_platform.pem
+      - SSH_BASE_WORKDIR=/opt/enterprise-ai-platform
+      - SSH_PORT=22
+      - SSH_CONNECTION_TIMEOUT=30
+
+      # LLM配置
+      - LLM_SERVICE_URL=http://llm-service:8000
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+
+      # 服务配置
+      - SERVICE_PORT=8002
+      - LOG_LEVEL=INFO
+    volumes:
+      # 挂载SSH密钥
+      - ../enterprise_ai_platform.pem:/opt/enterprise-ai-platform/enterprise_ai_platform.pem:ro
+      # 挂载工具目录
+      - ../tools:/app/tools:ro
+    ports:
+      - "8002:8002"
+    networks:
+      - enterprise-ai-network
+    restart: unless-stopped
+    depends_on:
+      - llm-service
+
+networks:
+  enterprise-ai-network:
+    external: true
+

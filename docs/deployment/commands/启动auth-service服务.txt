@@ -1,0 +1,25 @@
+# 启动auth-service服务
+# 在服务器上执行
+
+cd /opt/enterprise-ai-platform
+
+# 正确的服务名称是 auth-service（不是 auth-servic）
+sudo docker compose up -d --build auth-service
+
+# 等待启动
+sleep 20
+
+# 检查状态
+sudo docker compose ps auth-service
+
+# 查看日志
+sudo docker compose logs --tail=30 auth-service
+
+# 测试服务
+curl http://localhost:8003/api/health
+
+# ============================================
+# 一键执行
+# ============================================
+cd /opt/enterprise-ai-platform && sudo docker compose up -d --build auth-service && sleep 20 && echo "=== Status ===" && sudo docker compose ps auth-service && echo "" && echo "=== Logs ===" && sudo docker compose logs --tail=20 auth-service && echo "" && echo "=== Test ===" && curl -s http://localhost:8003/api/health
+

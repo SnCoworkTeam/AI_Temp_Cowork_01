@@ -1,0 +1,99 @@
+{
+  "name": "知识库增强问答工作流",
+  "description": "使用知识库搜索和增强功能进行智能问答",
+  "version": "1.0.0",
+  "nodes": [
+    {
+      "id": "start",
+      "name": "开始",
+      "type": "start",
+      "position": {"x": 100, "y": 100}
+    },
+    {
+      "id": "knowledge_search",
+      "name": "知识搜索",
+      "type": "knowledge_search",
+      "description": "在知识库中搜索相关信息",
+      "config": {
+        "query_source": "input",
+        "query_field": "user_query",
+        "search_type": "semantic",
+        "limit": 5,
+        "min_score": 0.5,
+        "summarize": true,
+        "output_key": "search_results"
+      },
+      "position": {"x": 300, "y": 100}
+    },
+    {
+      "id": "knowledge_enhance",
+      "name": "知识增强",
+      "type": "knowledge_enhancement",
+      "description": "使用知识库增强原始内容",
+      "config": {
+        "content_source": "input",
+        "content_field": "user_query",
+        "enhancement_strategy": "search_and_merge",
+        "enable_search": true,
+        "enable_graph": true,
+        "search_limit": 5,
+        "merge_mode": "context",
+        "context_format": "markdown",
+        "include_sources": true,
+        "output_key": "enhanced_content"
+      },
+      "position": {"x": 500, "y": 100}
+    },
+    {
+      "id": "llm_process",
+      "name": "LLM处理",
+      "type": "llm",
+      "description": "使用LLM处理增强后的内容",
+      "config": {
+        "model": "gpt-4",
+        "temperature": 0.7,
+        "prompt_template": "基于以下上下文信息回答问题：\n\n上下文：\n{${knowledge_enhance_enhanced_content}}\n\n问题：{${user_query}}\n\n请提供详细和准确的回答。"
+      },
+      "position": {"x": 700, "y": 100}
+    },
+    {
+      "id": "end",
+      "name": "结束",
+      "type": "end",
+      "position": {"x": 900, "y": 100}
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn1",
+      "source": {"node_id": "start"},
+      "target": {"node_id": "knowledge_search"}
+    },
+    {
+      "id": "conn2",
+      "source": {"node_id": "knowledge_search"},
+      "target": {"node_id": "knowledge_enhance"}
+    },
+    {
+      "id": "conn3",
+      "source": {"node_id": "knowledge_enhance"},
+      "target": {"node_id": "llm_process"}
+    },
+    {
+      "id": "conn4",
+      "source": {"node_id": "llm_process"},
+      "target": {"node_id": "end"}
+    }
+  ],
+  "start_node_id": "start",
+  "end_node_ids": ["end"]
+}
+
+
+
+
+
+
+
+
+

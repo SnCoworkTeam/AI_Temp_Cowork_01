@@ -1,0 +1,39 @@
+# 修复Pydantic验证器问题 - 需要上传的文件
+# 问题：Pydantic v2 验证器语法不兼容，导致工具注册失败
+
+# ============================================
+# 需要上传的文件
+# ============================================
+
+# 1. 修复后的tool_models.py（已更新为Pydantic v2语法）
+scp -i "E:\enterprise-ai-platform\enterprise_ai_platform.pem" -o StrictHostKeyChecking=no mcp-gateway/src/models/tool_models.py ubuntu@43.143.139.197:/opt/enterprise-ai-platform/mcp-gateway/src/models/
+
+# ============================================
+# 在服务器上执行的操作
+# ============================================
+
+cd /opt/enterprise-ai-platform
+
+# 1. 重启mcp-gateway（代码已热重载，但需要重启确保加载新代码）
+sudo docker compose restart mcp-gateway
+
+# 2. 等待启动
+sleep 20
+
+# 3. 检查状态
+sudo docker compose ps mcp-gateway
+
+# 4. 查看日志（应该没有验证错误了）
+sudo docker compose logs --tail=30 mcp-gateway
+
+# 5. 测试服务
+curl http://localhost:8001/api/health
+
+# ============================================
+# 验证修复
+# ============================================
+# 查看日志，应该不再有 "ValidationError" 或 "必需参数 'table' 不在参数定义中" 错误
+sudo docker compose logs mcp-gateway | grep -i "validation\|error" | tail -10
+
+# 如果看到 "Application startup complete" 或类似消息，说明启动成功
+

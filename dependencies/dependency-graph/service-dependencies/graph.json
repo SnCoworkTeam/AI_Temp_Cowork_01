@@ -1,0 +1,194 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2024-01-20T00:00:00Z",
+  "services": [
+    {
+      "name": "web-ui",
+      "type": "frontend",
+      "dependencies": [
+        {
+          "service": "auth-service",
+          "type": "api",
+          "endpoints": ["/api/auth/login", "/api/auth/callback", "/api/users/me"]
+        },
+        {
+          "service": "workflow-engine",
+          "type": "api",
+          "endpoints": ["/api/workflows", "/api/workflows/{id}/execute"]
+        },
+        {
+          "service": "mcp-gateway",
+          "type": "api",
+          "endpoints": ["/api/tools", "/api/tools/{name}/execute"]
+        },
+        {
+          "service": "knowledge-base",
+          "type": "api",
+          "endpoints": ["/api/documents", "/api/search/semantic"]
+        }
+      ]
+    },
+    {
+      "name": "workflow-engine",
+      "type": "backend",
+      "dependencies": [
+        {
+          "service": "mcp-gateway",
+          "type": "api",
+          "endpoints": ["/api/tools/{name}/execute"],
+          "description": "工作流节点调用MCP工具"
+        },
+        {
+          "service": "knowledge-base",
+          "type": "api",
+          "endpoints": ["/api/search/semantic"],
+          "description": "知识库增强工作流"
+        },
+        {
+          "service": "auth-service",
+          "type": "api",
+          "endpoints": ["/api/users/me"],
+          "description": "获取用户信息"
+        },
+        {
+          "service": "database",
+          "type": "database",
+          "description": "工作流定义和执行历史存储"
+        }
+      ]
+    },
+    {
+      "name": "auth-service",
+      "type": "backend",
+      "dependencies": [
+        {
+          "service": "database",
+          "type": "database",
+          "description": "用户和权限数据存储"
+        },
+        {
+          "service": "redis",
+          "type": "cache",
+          "description": "会话和token缓存"
+        }
+      ]
+    },
+    {
+      "name": "mcp-gateway",
+      "type": "backend",
+      "dependencies": [
+        {
+          "service": "knowledge-base",
+          "type": "api",
+          "endpoints": ["/api/search/semantic"],
+          "description": "知识库搜索工具"
+        },
+        {
+          "service": "database",
+          "type": "database",
+          "description": "工具配置和执行历史存储"
+        },
+        {
+          "service": "redis",
+          "type": "cache",
+          "description": "工具执行缓存和速率限制"
+        }
+      ]
+    },
+    {
+      "name": "knowledge-base",
+      "type": "backend",
+      "dependencies": [
+        {
+          "service": "database",
+          "type": "database",
+          "description": "文档元数据存储"
+        },
+        {
+          "service": "vector-db",
+          "type": "database",
+          "description": "向量索引存储"
+        }
+      ]
+    },
+    {
+      "name": "shared-libs",
+      "type": "library",
+      "dependencies": [],
+      "used_by": [
+        "mcp-gateway",
+        "workflow-engine",
+        "auth-service",
+        "knowledge-base"
+      ]
+    },
+    {
+      "name": "database",
+      "type": "infrastructure",
+      "dependencies": [],
+      "used_by": [
+        "mcp-gateway",
+        "workflow-engine",
+        "auth-service",
+        "knowledge-base"
+      ]
+    },
+    {
+      "name": "redis",
+      "type": "infrastructure",
+      "dependencies": [],
+      "used_by": [
+        "auth-service",
+        "mcp-gateway",
+        "workflow-engine"
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "from": "web-ui",
+      "to": "auth-service",
+      "type": "http",
+      "description": "认证和用户信息"
+    },
+    {
+      "from": "web-ui",
+      "to": "workflow-engine",
+      "type": "http",
+      "description": "工作流管理"
+    },
+    {
+      "from": "web-ui",
+      "to": "mcp-gateway",
+      "type": "http",
+      "description": "工具管理"
+    },
+    {
+      "from": "workflow-engine",
+      "to": "mcp-gateway",
+      "type": "http",
+      "description": "工具调用"
+    },
+    {
+      "from": "workflow-engine",
+      "to": "knowledge-base",
+      "type": "http",
+      "description": "知识库增强"
+    },
+    {
+      "from": "mcp-gateway",
+      "to": "knowledge-base",
+      "type": "http",
+      "description": "知识库工具"
+    }
+  ]
+}
+
+
+
+
+
+
+
+
+

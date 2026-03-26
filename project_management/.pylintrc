@@ -1,0 +1,22 @@
+[MASTER]
+max-line-length=120
+ignore=venv,.venv,__pycache__,dist,build,.next,node_modules
+
+[MESSAGES CONTROL]
+disable=
+    C0114,  # missing-module-docstring
+    C0115,  # missing-class-docstring
+    C0116,  # missing-function-docstring
+    R0903,  # too-few-public-methods
+    R0913,  # too-many-arguments
+    R0912,  # too-many-branches
+    R0915,  # too-many-statements
+
+[FORMAT]
+max-line-length=120
+indent-after-paren=4
+indent-string='    '
+
+[BASIC]
+good-names=i,j,k,ex,Run,_,id,pk,db
+

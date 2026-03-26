@@ -1,0 +1,18 @@
+# Trivy忽略文件
+# 格式: CVE-ID 或 漏洞类型
+
+# 示例（需要根据实际情况配置）
+# CVE-2023-XXXXX
+# CVE-2023-YYYYY
+
+# 忽略原因说明
+# 每个被忽略的漏洞都应该在security-policies/vulnerability-policy.md中记录
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,59 @@
+# 修复shared_libs/__init__.py - 最简版本（服务器上执行）
+# 问题：相对导入 from .src.models import (...) 在包未识别时执行导致失败
+# 解决：创建最简版本，不进行任何相对导入
+
+cd /opt/enterprise-ai-platform
+
+# 备份
+cp shared_libs/__init__.py shared_libs/__init__.py.bak3
+
+# 创建最简版本（不进行任何相对导入）
+cat > shared_libs/__init__.py << 'EOF'
+"""共享库包"""
+# 最简版本：确保包可以被导入
+# 不进行任何相对导入，避免在包未识别时导入失败
+__version__ = "1.0.0"
+__all__ = []
+EOF
+
+# 验证文件
+echo "File created. Content:"
+cat shared_libs/__init__.py
+
+# 测试导入
+echo ""
+echo "Testing import..."
+sudo docker exec enterprise-ai-mcp-gateway python << 'EOF'
+import sys
+sys.path.insert(0, '/')
+try:
+    import shared_libs
+    print("SUCCESS: shared_libs imported")
+    print(f"Version: {shared_libs.__version__}")
+    
+    # 测试schemas导入（这是monitoring.py实际需要的）
+    from shared_libs.schemas.monitoring_schemas import ServiceMonitoringData
+    print("SUCCESS: ServiceMonitoringData imported")
+except Exception as e:
+    print(f"FAILED: {e}")
+    import traceback
+    traceback.print_exc()
+EOF
+
+# 如果测试成功，重启服务
+echo ""
+echo "Restarting service..."
+sudo docker compose restart mcp-gateway
+sleep 20
+sudo docker compose logs --tail=20 mcp-gateway
+
+# ============================================
+# 一键执行
+# ============================================
+cd /opt/enterprise-ai-platform && cp shared_libs/__init__.py shared_libs/__init__.py.bak3 && cat > shared_libs/__init__.py << 'ENDOFFILE'
+"""共享库包"""
+__version__ = "1.0.0"
+__all__ = []
+ENDOFFILE
+&& sudo docker exec enterprise-ai-mcp-gateway python -c 'import sys; sys.path.insert(0, "/"); import shared_libs; from shared_libs.schemas.monitoring_schemas import ServiceMonitoringData; print("OK")' && sudo docker compose restart mcp-gateway && sleep 20 && sudo docker compose logs --tail=20 mcp-gateway
+

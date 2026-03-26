@@ -1,0 +1,39 @@
+# OpenCode 本地 Web 镜像：从源码构建 opencode CLI + packages/app 前端，不依赖 app.opencode.ai
+# 在仓库根目录执行: docker build -f opencode-src/Dockerfile.local-web -t enterprise-ai-opencode-local-web:latest opencode-src
+# 需要能访问外网（bun install、opencode build 会拉取依赖与 models snapshot）
+
+FROM oven/bun:1 AS builder
+WORKDIR /app
+
+# opencode build 脚本会执行 git，需安装
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
+
+# 复制源码（含已修改的 server.ts 与 packages/app）
+COPY . .
+
+# 安装依赖并构建
+RUN bun install --frozen-lockfile
+RUN cd packages/app && bun run build
+RUN cd packages/opencode && bun run build -- --single
+
+# 运行时镜像：与主仓库 opencode 镜像一致的基础，增加 /app-web 静态资源
+FROM node:20-bookworm-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    git \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 复制 opencode 二进制（--single 在 x64 下为 opencode-linux-x64，在 arm64 下为 opencode-linux-arm64）
+COPY --from=builder /app/packages/opencode/dist /tmp/opencode-dist
+RUN cp /tmp/opencode-dist/opencode-linux-*/bin/opencode /usr/local/bin/opencode && rm -rf /tmp/opencode-dist
+COPY --from=builder /app/packages/app/dist /app-web
+
+# 本地 Web：不代理 app.opencode.ai，从 /app-web 提供静态文件
+ENV OPENCODE_SERVE_WEB_LOCAL=1
+ENV OPENCODE_WEB_ROOT=/app-web
+
+WORKDIR /workspace
+EXPOSE 4096
+CMD ["opencode", "serve", "--hostname", "0.0.0.0", "--port", "4096"]

@@ -1,0 +1,92 @@
+# 开发环境Dockerfile - 支持热重载和调试
+ARG PYTHON_VERSION=3.11
+
+# 基础阶段 - 使用 bookworm 版本以匹配镜像源
+FROM python:${PYTHON_VERSION}-slim-bookworm as base
+
+# 配置 Debian 镜像源（使用清华镜像，保持原有 Debian 版本）
+RUN sed -i 's|http://deb.debian.org|https://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || \
+    sed -i 's|http://deb.debian.org|https://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list 2>/dev/null || true
+
+# 安装系统依赖和开发工具（包括编译工具用于pyrfc）
+RUN apt-get update && apt-get install -y \
+    curl \
+    vim \
+    git \
+    procps \
+    netcat-openbsd \
+    gcc \
+    g++ \
+    make \
+    libc6-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# 设置环境变量
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app:/app/src:/app/shared_libs:/app/database \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# 依赖安装阶段
+FROM base as deps
+
+# 配置pip使用国内镜像源（清华镜像）
+RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple && \
+    pip config set global.timeout 300 && \
+    pip config set global.retries 5
+
+# 先安装shared_libs依赖
+COPY shared_libs/requirements.txt ./shared_libs_requirements.txt
+RUN pip install --no-cache-dir -r ./shared_libs_requirements.txt
+
+# 安装共享库包
+COPY shared_libs /tmp/shared_libs
+RUN pip install --no-cache-dir -e /tmp/shared_libs
+
+# 安装database依赖
+COPY database/requirements.txt ./database_requirements.txt
+RUN pip install --no-cache-dir -r ./database_requirements.txt
+
+# 安装服务依赖
+COPY mcp-gateway/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 安装开发工具（调试、热重载等）
+RUN pip install --no-cache-dir \
+    ipython \
+    ipdb \
+    watchdog \
+    pytest \
+    pytest-asyncio \
+    httpx
+
+# 开发运行阶段
+FROM base as development
+
+# 复制依赖
+COPY --from=deps /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=deps /usr/local/bin /usr/local/bin
+
+# 复制源代码（开发时通过volume挂载，这里只是占位）
+COPY mcp-gateway/src/ ./src/
+# 提供依赖源码以便运行时引用
+COPY shared_libs /app/shared_libs
+COPY database /app/database
+
+# 创建非root用户（开发环境仍然可以使用root，但提供选项）
+RUN groupadd -r appuser && useradd -r -g appuser appuser || true
+
+# 暴露端口
+EXPOSE 8001
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD curl -f http://localhost:8001/api/health || exit 1
+
+# 开发模式启动命令（支持热重载）
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload", "--reload-dir", "/app/src"]
+
+

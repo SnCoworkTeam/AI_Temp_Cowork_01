@@ -1,0 +1,218 @@
+@startuml LuminaOS系统架构图
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam componentStyle rectangle
+skinparam linetype ortho
+
+title LuminaOS 企业AI平台 - 系统架构图
+
+' 定义颜色
+skinparam component {
+    BackgroundColor<<Infrastructure>> #E8F4F8
+    BackgroundColor<<Core>> #FFF4E6
+    BackgroundColor<<Business>> #E8F5E9
+    BackgroundColor<<Frontend>> #F3E5F5
+    BorderColor #2E7D32
+    ArrowColor #1976D2
+}
+
+' ============================================
+' 前端层
+' ============================================
+package "前端层" <<Frontend>> {
+    component [Web UI\nNext.js 14\nPort: 3000] as WebUI
+}
+
+' ============================================
+' 核心架构层
+' ============================================
+package "核心架构层" <<Core>> {
+    component [API Gateway\nFastAPI\nPort: 8080] as APIGateway
+    component [Registry Service\n服务注册与发现\nPort: 8000] as Registry
+    component [Config Center\n配置管理中心\nPort: 8090] as ConfigCenter
+}
+
+' ============================================
+' 业务服务层 - AI核心服务
+' ============================================
+package "业务服务层 - AI核心" <<Business>> {
+    component [Agent Service\n智能体核心服务\nPort: 8010] as AgentService
+    component [Agent Orchestrator\n智能体编排服务\nPort: 8011] as AgentOrchestrator
+    component [Agent Registry\n智能体注册中心\nPort: 8012] as AgentRegistry
+    component [Workflow Engine\n工作流引擎\nLangGraph\nPort: 8002] as WorkflowEngine
+    component [DAG Orchestrator\n任务编排服务\nPort: 8009] as DAGOrchestrator
+}
+
+' ============================================
+' 业务服务层 - 数据与知识服务
+' ============================================
+package "业务服务层 - 数据与知识" <<Business>> {
+    component [Knowledge Base\n知识库服务\nPort: 8004] as KnowledgeBase
+    component [Metadata Service\n元数据管理服务\nPort: 8005] as MetadataService
+    component [Memory Service\n记忆服务\nPort: 8013] as MemoryService
+    component [Vector Coordinator\n向量协调服务\nPort: 8020] as VectorCoordinator
+}
+
+' ============================================
+' 业务服务层 - 集成与工具服务
+' ============================================
+package "业务服务层 - 集成与工具" <<Business>> {
+    component [MCP Gateway\nMCP工具网关\nPort: 8001] as MCPGateway
+    component [SAP MCP Server\nSAP OData集成\nNode.js\nPort: 3001] as SAPMCPServer
+    component [SAP Metadata Agent\nSAP元数据代理\nPort: 8015] as SAPMetadataAgent
+    component [JoyAgent Adapter\nJoyAgent适配器\nPort: 8007] as JoyAgentAdapter
+}
+
+' ============================================
+' 业务服务层 - 基础服务
+' ============================================
+package "业务服务层 - 基础服务" <<Business>> {
+    component [Auth Service\n认证授权服务\nPort: 8003] as AuthService
+    component [Chat Service\nAI对话服务\nPort: 8006] as ChatService
+}
+
+' ============================================
+' 基础设施层
+' ============================================
+package "基础设施层" <<Infrastructure>> {
+    database "PostgreSQL\n主数据库\nPort: 5432" as PostgreSQL
+    database "Redis\n缓存服务\nPort: 6379" as Redis
+    database "Qdrant\n向量数据库\nPort: 6333" as Qdrant
+    database "Neo4j\n图数据库\nPort: 7474" as Neo4j
+}
+
+' ============================================
+' 前端到网关
+' ============================================
+WebUI --> APIGateway : HTTP/WebSocket
+
+' ============================================
+' API网关路由
+' ============================================
+APIGateway --> Registry : 服务发现
+APIGateway --> ConfigCenter : 配置获取
+APIGateway --> AgentService : /api/agents/*
+APIGateway --> AgentOrchestrator : /api/orchestrate/*
+APIGateway --> WorkflowEngine : /api/workflows/*
+APIGateway --> KnowledgeBase : /api/knowledge/*
+APIGateway --> MetadataService : /api/metadata/*
+APIGateway --> AuthService : /api/auth/*
+APIGateway --> ChatService : /api/chat/*
+APIGateway --> MCPGateway : /api/mcp/*
+
+' ============================================
+' 服务间依赖关系
+' ============================================
+AgentService --> AgentRegistry : 智能体发现
+AgentService --> AgentOrchestrator : 复杂任务编排
+AgentService --> WorkflowEngine : 工作流执行
+AgentService --> KnowledgeBase : 知识检索
+AgentService --> MetadataService : 元数据查询
+AgentService --> MCPGateway : 工具调用
+AgentService --> MemoryService : 记忆存储
+
+AgentOrchestrator --> AgentService : 智能体调用
+AgentOrchestrator --> WorkflowEngine : 工作流编排
+AgentOrchestrator --> DAGOrchestrator : 任务分解
+
+WorkflowEngine --> MCPGateway : 工具调用
+WorkflowEngine --> KnowledgeBase : 知识增强
+
+DAGOrchestrator --> AgentService : 智能体调用
+DAGOrchestrator --> WorkflowEngine : 工作流执行
+DAGOrchestrator --> MCPGateway : 工具调用
+
+KnowledgeBase --> MetadataService : 元数据同步
+KnowledgeBase --> VectorCoordinator : 向量协调
+
+MetadataService --> SAPMetadataAgent : SAP元数据采集
+
+MCPGateway --> SAPMCPServer : SAP工具调用
+MCPGateway --> JoyAgentAdapter : JoyAgent工具
+
+ChatService --> AgentService : 智能体调用
+ChatService --> KnowledgeBase : 知识检索
+
+' ============================================
+' 数据库连接
+' ============================================
+AgentService --> PostgreSQL : 数据持久化
+AgentService --> Redis : 缓存
+AgentService --> Qdrant : 向量存储
+
+WorkflowEngine --> PostgreSQL : 工作流状态
+WorkflowEngine --> Redis : 执行缓存
+
+KnowledgeBase --> PostgreSQL : 文档存储
+KnowledgeBase --> Qdrant : 向量索引
+KnowledgeBase --> Neo4j : 知识图谱
+
+MetadataService --> PostgreSQL : 元数据存储
+MetadataService --> Neo4j : 关系图谱
+
+MemoryService --> Qdrant : 记忆向量存储
+MemoryService --> PostgreSQL : 记忆元数据
+
+AuthService --> PostgreSQL : 用户数据
+
+ChatService --> PostgreSQL : 对话历史
+ChatService --> Redis : 会话缓存
+
+VectorCoordinator --> Qdrant : 向量管理
+
+' ============================================
+' 服务注册
+' ============================================
+AgentService ..> Registry : 注册
+AgentOrchestrator ..> Registry : 注册
+WorkflowEngine ..> Registry : 注册
+KnowledgeBase ..> Registry : 注册
+MetadataService ..> Registry : 注册
+AuthService ..> Registry : 注册
+ChatService ..> Registry : 注册
+MCPGateway ..> Registry : 注册
+
+' ============================================
+' 配置中心
+' ============================================
+AgentService ..> ConfigCenter : 配置获取
+WorkflowEngine ..> ConfigCenter : 配置获取
+KnowledgeBase ..> ConfigCenter : 配置获取
+
+note right of APIGateway
+  **统一入口**
+  - 路由转发
+  - 认证授权
+  - 限流熔断
+  - 智能路由
+end note
+
+note right of AgentService
+  **智能体核心**
+  - 意图识别
+  - 任务分类
+  - 服务集成
+  - 流式执行
+end note
+
+note right of WorkflowEngine
+  **工作流引擎**
+  - BPMN 2.0支持
+  - AI节点扩展
+  - LangGraph执行
+  - 状态持久化
+end note
+
+note right of KnowledgeBase
+  **知识库服务**
+  - 文档管理
+  - 向量索引
+  - 语义搜索
+  - 知识图谱
+end note
+
+@enduml
+
+
+
+

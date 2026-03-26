@@ -1,0 +1,74 @@
+# 所有服务名称和启动命令
+# 在服务器上执行
+
+cd /opt/enterprise-ai-platform
+
+# ============================================
+# 所有可用的服务名称
+# ============================================
+# 1. postgres - PostgreSQL数据库
+# 2. redis - Redis缓存
+# 3. redis-commander - Redis管理界面
+# 4. mcp-gateway - MCP网关服务（已启动）
+# 5. workflow-engine - 工作流引擎
+# 6. web-ui - Web用户界面
+# 7. auth-service - 认证服务
+# 8. knowledge-base - 知识库服务
+# 9. metadata-service - 元数据服务
+
+# ============================================
+# 启动单个服务
+# ============================================
+
+# 启动auth-service（注意：是 auth-service，不是 auth-servic）
+sudo docker compose up -d --build auth-service
+
+# 启动workflow-engine
+sudo docker compose up -d --build workflow-engine
+
+# 启动knowledge-base
+sudo docker compose up -d --build knowledge-base
+
+# 启动metadata-service
+sudo docker compose up -d --build metadata-service
+
+# 启动web-ui
+sudo docker compose up -d --build web-ui
+
+# ============================================
+# 启动所有服务
+# ============================================
+sudo docker compose up -d --build
+
+# 或者指定多个服务
+sudo docker compose up -d --build postgres redis mcp-gateway auth-service workflow-engine knowledge-base metadata-service
+
+# ============================================
+# 检查服务状态
+# ============================================
+# 检查所有服务
+sudo docker compose ps
+
+# 检查单个服务
+sudo docker compose ps auth-service
+
+# ============================================
+# 查看服务日志
+# ============================================
+sudo docker compose logs --tail=30 auth-service
+
+# ============================================
+# 测试服务
+# ============================================
+# auth-service: http://localhost:8003/api/health
+curl http://localhost:8003/api/health
+
+# workflow-engine: http://localhost:8002/api/health
+curl http://localhost:8002/api/health
+
+# knowledge-base: http://localhost:8004/api/health
+curl http://localhost:8004/api/health
+
+# metadata-service: http://localhost:8005/api/health
+curl http://localhost:8005/api/health
+

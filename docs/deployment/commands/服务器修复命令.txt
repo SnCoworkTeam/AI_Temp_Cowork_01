@@ -1,0 +1,76 @@
+# 服务器端修复命令
+# 在服务器上按顺序执行以下命令
+
+cd /opt/enterprise-ai-platform
+
+# ============================================
+# 步骤1: 修复.env文件中的LOG_LEVEL
+# ============================================
+echo "=== Step 1: Fix LOG_LEVEL in .env ==="
+sed -i 's/^LOG_LEVEL=.*$/LOG_LEVEL=info/' .env
+
+# 验证修改
+echo "LOG_LEVEL value:"
+grep LOG_LEVEL .env
+
+# ============================================
+# 步骤2: 停止现有的mcp-gateway容器
+# ============================================
+echo ""
+echo "=== Step 2: Stop existing mcp-gateway ==="
+sudo docker compose stop mcp-gateway
+sudo docker compose rm -f mcp-gateway
+
+# ============================================
+# 步骤3: 停止redis-commander（如果存在）
+# ============================================
+echo ""
+echo "=== Step 3: Stop redis-commander ==="
+sudo docker stop enterprise-ai-redis-commander 2>/dev/null || echo "redis-commander not running"
+
+# ============================================
+# 步骤4: 启动所有服务
+# ============================================
+echo ""
+echo "=== Step 4: Start all services ==="
+sudo docker compose up -d postgres redis redis-commander mcp-gateway
+
+# 等待服务启动
+echo "Waiting for services to start..."
+sleep 25
+
+# ============================================
+# 步骤5: 检查所有服务状态
+# ============================================
+echo ""
+echo "=== Step 5: Check service status ==="
+sudo docker compose ps
+
+# ============================================
+# 步骤6: 查看mcp-gateway日志
+# ============================================
+echo ""
+echo "=== Step 6: Check mcp-gateway logs ==="
+sudo docker compose logs --tail=30 mcp-gateway
+
+# ============================================
+# 步骤7: 测试服务
+# ============================================
+echo ""
+echo "=== Step 7: Test services ==="
+echo "Testing postgres:"
+sudo docker exec enterprise-ai-postgres pg_isready -U postgres
+
+echo ""
+echo "Testing redis:"
+sudo docker exec enterprise-ai-redis redis-cli ping
+
+echo ""
+echo "Testing mcp-gateway:"
+curl http://localhost:8001/api/health
+
+# ============================================
+# 一键执行命令（复制执行）
+# ============================================
+# sed -i 's/^LOG_LEVEL=.*$/LOG_LEVEL=info/' .env && sudo docker compose stop mcp-gateway && sudo docker compose rm -f mcp-gateway && sudo docker stop enterprise-ai-redis-commander 2>/dev/null; sudo docker compose up -d postgres redis redis-commander mcp-gateway && sleep 25 && sudo docker compose ps && echo "" && curl http://localhost:8001/api/health
+

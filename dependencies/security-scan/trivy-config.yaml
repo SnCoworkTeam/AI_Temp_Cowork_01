@@ -1,0 +1,130 @@
+# Trivy配置
+# 用于容器镜像和文件系统扫描
+
+# 扫描配置
+scan:
+  # 扫描类型
+  types:
+    - container
+    - filesystem
+    - config
+    - secret
+  
+  # 严重性级别
+  severity:
+    - CRITICAL
+    - HIGH
+    - MEDIUM
+    - LOW
+  
+  # 退出代码配置
+  exit_code:
+    CRITICAL: 1
+    HIGH: 1
+    MEDIUM: 0
+    LOW: 0
+  
+  # 忽略未修复的漏洞
+  ignore_unfixed: false
+  
+  # 忽略文件
+  ignorefile: "dependencies/security-scan/.trivyignore"
+
+# 报告配置
+report:
+  format:
+    - json
+    - table
+    - sarif
+  
+  output:
+    json: "dependencies/security-scan/reports/trivy-report.json"
+    table: "dependencies/security-scan/reports/trivy-report.txt"
+    sarif: "dependencies/security-scan/reports/trivy-report.sarif"
+
+# 缓存配置
+cache:
+  dir: ".trivy/cache"
+  ttl: "24h"
+
+# 数据库配置
+db:
+  # 自动更新数据库
+  no_progress: false
+  quiet: false
+
+# 镜像扫描配置
+container:
+  # 扫描的镜像列表
+  images:
+    - "mcp-gateway:latest"
+    - "workflow-engine:latest"
+    - "auth-service:latest"
+    - "knowledge-base:latest"
+    - "web-ui:latest"
+  
+  # 镜像仓库配置（可选）
+  registry:
+    # Docker Hub
+    docker.io:
+      username: "${DOCKER_USERNAME}"
+      password: "${DOCKER_PASSWORD}"
+  
+  # 扫描选项
+  options:
+    - "--skip-dirs"
+    - "--skip-files"
+    - "--security-checks"
+    - "vuln,config,secret"
+
+# 文件系统扫描配置
+filesystem:
+  # 扫描路径
+  paths:
+    - "mcp-gateway"
+    - "workflow-engine"
+    - "auth-service"
+    - "knowledge-base"
+    - "web-ui"
+    - "shared-libs"
+    - "database"
+  
+  # 排除路径
+  exclude:
+    - "**/node_modules/**"
+    - "**/venv/**"
+    - "**/env/**"
+    - "**/__pycache__/**"
+    - "**/.git/**"
+
+# 配置扫描
+config:
+  # 扫描的配置文件
+  files:
+    - "**/Dockerfile*"
+    - "**/docker-compose*.yml"
+    - "**/.github/workflows/*.yml"
+    - "**/k8s/**/*.yaml"
+  
+  # 策略文件
+  policy: "dependencies/security-scan/security-policies/trivy-policy.rego"
+
+# 密钥扫描
+secret:
+  # 启用密钥扫描
+  enabled: true
+  
+  # 排除路径
+  exclude:
+    - "**/.env.example"
+    - "**/test/**"
+    - "**/tests/**"
+
+
+
+
+
+
+
+
+

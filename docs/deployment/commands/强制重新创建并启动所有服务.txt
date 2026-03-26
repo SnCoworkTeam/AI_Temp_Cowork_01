@@ -1,0 +1,75 @@
+# 强制重新创建并启动所有服务
+# postgres显示Stopped但没有启动，需要强制重新创建
+
+cd /opt/enterprise-ai-platform
+
+# ============================================
+# 方法1: 使用--force-recreate强制重新创建（推荐）
+# ============================================
+# 强制重新创建postgres、redis和mcp-gateway
+sudo docker compose up -d --force-recreate postgres redis mcp-gateway
+
+# 等待所有服务启动
+sleep 25
+
+# 检查状态
+sudo docker compose ps
+
+# ============================================
+# 方法2: 如果方法1失败，先删除容器再创建
+# ============================================
+# 停止并删除容器（保留数据卷）
+sudo docker compose stop postgres redis mcp-gateway
+sudo docker compose rm -f postgres redis mcp-gateway
+
+# 重新创建并启动
+sudo docker compose up -d postgres redis mcp-gateway
+
+# 等待启动
+sleep 25
+
+# 检查状态
+sudo docker compose ps
+
+# ============================================
+# 方法3: 只重新创建postgres（如果其他服务正常）
+# ============================================
+# 停止并删除postgres容器
+sudo docker compose stop postgres
+sudo docker compose rm -f postgres
+
+# 重新创建postgres
+sudo docker compose up -d postgres
+
+# 等待postgres就绪
+sleep 15
+
+# 然后启动其他服务
+sudo docker compose up -d redis mcp-gateway
+
+# 等待启动
+sleep 15
+
+# 检查状态
+sudo docker compose ps
+
+# ============================================
+# 验证服务
+# ============================================
+# 检查所有容器
+sudo docker ps
+
+# 测试postgres
+sudo docker exec enterprise-ai-postgres pg_isready -U postgres
+
+# 测试redis
+sudo docker exec enterprise-ai-redis redis-cli ping
+
+# 测试mcp-gateway
+curl http://localhost:8001/api/health
+
+# ============================================
+# 一键强制重新创建命令
+# ============================================
+sudo docker compose up -d --force-recreate postgres redis mcp-gateway && sleep 25 && sudo docker compose ps && echo "" && echo "Testing services..." && sudo docker exec enterprise-ai-postgres pg_isready -U postgres && sudo docker exec enterprise-ai-redis redis-cli ping && curl http://localhost:8001/api/health
+

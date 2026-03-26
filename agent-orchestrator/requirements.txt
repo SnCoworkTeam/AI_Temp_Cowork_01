@@ -1,0 +1,13 @@
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.0.0
+httpx>=0.25.0
+python-dotenv>=1.0.0
+
+# LLM集成 - DeepSeek
+langchain>=0.1.0
+langchain-openai>=0.0.5
+
+# 日志
+python-json-logger>=2.0.0
+

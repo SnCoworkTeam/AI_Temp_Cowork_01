@@ -1,0 +1,10 @@
+{
+  "test-performance/test_hypothesis.py": true,
+  "test_enhanced_intelligent_router.py": true,
+  "test_stage1_week1.py": true,
+  "os_core/test_integration.py::TestEndToEndIntegration::test_knowledge_search_flow": true,
+  "os_core/test_integration.py::TestEndToEndIntegration::test_multi_resource_resolution": true,
+  "os_core/test_resource_resolver.py::TestResourceResolver::test_resolve_knowledge_search_intent": true,
+  "os_core/test_resource_resolver.py::TestResourceResolver::test_resolve_workflow_intent": true,
+  "os_core/test_resource_resolver.py::TestResourceResolver::test_resolve_multiple_resource_types": true
+}

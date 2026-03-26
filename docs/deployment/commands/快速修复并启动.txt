@@ -1,0 +1,32 @@
+# 快速修复postgres并启动所有服务
+# 复制执行以下命令
+
+cd /opt/enterprise-ai-platform
+
+# 1. 直接启动postgres容器（如果存在）
+sudo docker start enterprise-ai-postgres
+
+# 2. 等待postgres就绪
+sleep 15
+
+# 3. 启动redis服务
+sudo docker compose up -d redis
+
+# 4. 等待redis就绪
+sleep 5
+
+# 5. 启动mcp-gateway
+sudo docker compose up -d mcp-gateway
+
+# 6. 等待mcp-gateway启动
+sleep 10
+
+# 7. 检查所有服务状态
+sudo docker compose ps
+
+# 8. 查看mcp-gateway日志
+sudo docker compose logs --tail=30 mcp-gateway
+
+# 9. 测试服务
+curl http://localhost:8001/api/health
+

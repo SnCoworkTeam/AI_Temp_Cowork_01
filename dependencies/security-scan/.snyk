@@ -1,0 +1,37 @@
+# Snyk策略文件
+# 用于配置漏洞忽略和修复策略
+
+version: v1.27.0
+
+# 忽略的漏洞
+# 格式: 漏洞ID: 原因: 过期时间
+ignore:
+  # 示例（需要根据实际情况配置）
+  # 'SNYK-PYTHON-PACKAGE-123456':
+  #   - '*':
+  #       reason: "已确认不影响本项目"
+  #       expires: "2024-12-31"
+
+# 补丁配置
+patches:
+  # 示例（需要根据实际情况配置）
+  # 'npm:package@version':
+  #   - 'patch:patch-id':
+  #       path: 'patches/package.patch'
+
+# 依赖更新策略
+patch:
+  # 自动应用补丁
+  auto: false
+  
+  # 补丁目录
+  directory: "patches"
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,134 @@
+@startuml LuminaOS系统数据流图
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam componentStyle rectangle
+skinparam linetype ortho
+
+title LuminaOS 企业AI平台 - 数据流图
+
+' 定义颜色
+skinparam component {
+    BackgroundColor<<User>> #E8EAF6
+    BackgroundColor<<Service>> #E0F2F1
+    BackgroundColor<<Data>> #FFF3E0
+    BorderColor #1976D2
+    ArrowColor #424242
+}
+
+' ============================================
+' 用户请求流程
+' ============================================
+actor "用户" as User <<User>>
+
+component "Web UI" as WebUI <<Service>>
+component "API Gateway" as APIGateway <<Service>>
+component "Agent Service" as AgentService <<Service>>
+component "Workflow Engine" as WorkflowEngine <<Service>>
+component "Knowledge Base" as KnowledgeBase <<Service>>
+component "Metadata Service" as MetadataService <<Service>>
+component "MCP Gateway" as MCPGateway <<Service>>
+
+database "PostgreSQL" as PostgreSQL <<Data>>
+database "Redis" as Redis <<Data>>
+database "Qdrant" as Qdrant <<Data>>
+database "Neo4j" as Neo4j <<Data>>
+
+' ============================================
+' 典型用户请求流程
+' ============================================
+User --> WebUI : 1. 用户输入查询
+WebUI --> APIGateway : 2. HTTP请求
+APIGateway --> AgentService : 3. 路由到智能体服务
+
+' ============================================
+' 智能体处理流程
+' ============================================
+AgentService --> AgentService : 4. 意图识别
+AgentService --> AgentService : 5. 任务分类
+AgentService --> KnowledgeBase : 6. 知识检索
+AgentService --> MetadataService : 7. 元数据查询
+AgentService --> WorkflowEngine : 8. 工作流执行
+AgentService --> MCPGateway : 9. 工具调用
+
+' ============================================
+' 数据查询流程
+' ============================================
+KnowledgeBase --> PostgreSQL : 查询文档元数据
+KnowledgeBase --> Qdrant : 向量相似度搜索
+KnowledgeBase --> Neo4j : 查询知识图谱
+
+MetadataService --> PostgreSQL : 查询元数据
+MetadataService --> Neo4j : 查询关系图谱
+
+' ============================================
+' 缓存流程
+' ============================================
+AgentService --> Redis : 10. 缓存执行结果
+WorkflowEngine --> Redis : 缓存工作流状态
+KnowledgeBase --> Redis : 缓存搜索结果
+
+' ============================================
+' 响应流程
+' ============================================
+AgentService --> APIGateway : 11. 流式响应(SSE)
+APIGateway --> WebUI : 12. 实时推送
+WebUI --> User : 13. 显示结果
+
+' ============================================
+' 工作流执行流程
+' ============================================
+WorkflowEngine --> PostgreSQL : 保存工作流状态
+WorkflowEngine --> MCPGateway : 调用工具
+MCPGateway --> WorkflowEngine : 返回结果
+WorkflowEngine --> PostgreSQL : 更新状态
+
+' ============================================
+' 数据持久化流程
+' ============================================
+AgentService --> PostgreSQL : 保存执行历史
+KnowledgeBase --> PostgreSQL : 保存文档元数据
+KnowledgeBase --> Qdrant : 保存向量索引
+KnowledgeBase --> Neo4j : 保存知识图谱
+MetadataService --> PostgreSQL : 保存元数据
+MetadataService --> Neo4j : 保存关系
+
+' ============================================
+' 注释说明
+' ============================================
+note right of AgentService
+  **智能体处理**
+  1. 接收用户请求
+  2. 识别意图和任务类型
+  3. 调用相关服务
+  4. 聚合结果
+  5. 流式返回
+end note
+
+note right of KnowledgeBase
+  **知识检索**
+  1. 向量相似度搜索
+  2. 知识图谱查询
+  3. 结果排序和过滤
+  4. 返回相关文档
+end note
+
+note bottom of PostgreSQL
+  **数据持久化**
+  - 结构化数据
+  - 关系数据
+  - 元数据
+  - 执行历史
+end note
+
+note bottom of Qdrant
+  **向量存储**
+  - 文档向量
+  - 语义索引
+  - 相似度搜索
+end note
+
+@enduml
+
+
+
+

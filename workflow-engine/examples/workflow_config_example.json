@@ -1,0 +1,113 @@
+{
+  "name": "sap_data_analysis_workflow",
+  "description": "SAP数据分析工作流示例",
+  "version": "1.0.0",
+  "nodes": [
+    {
+      "id": "start",
+      "name": "开始",
+      "type": "start",
+      "position": {"x": 100, "y": 100},
+      "size": {"width": 150, "height": 80}
+    },
+    {
+      "id": "fetch_data",
+      "name": "获取SAP数据",
+      "type": "tool",
+      "config": {
+        "tool_name": "sap_query",
+        "parameters": {
+          "table": "MARA",
+          "query": "MATNR='${input_product_id}'"
+        }
+      },
+      "position": {"x": 300, "y": 100},
+      "size": {"width": 200, "height": 100}
+    },
+    {
+      "id": "check_data",
+      "name": "检查数据",
+      "type": "condition",
+      "config": {
+        "condition": "len(state.get('fetch_data_output', {})) > 0"
+      },
+      "position": {"x": 550, "y": 100},
+      "size": {"width": 150, "height": 100}
+    },
+    {
+      "id": "analyze",
+      "name": "数据分析",
+      "type": "llm",
+      "config": {
+        "model": "gpt-4",
+        "prompt_template": "分析以下SAP数据：{fetch_data_output}"
+      },
+      "position": {"x": 750, "y": 50},
+      "size": {"width": 200, "height": 120}
+    },
+    {
+      "id": "log_result",
+      "name": "记录结果",
+      "type": "log",
+      "config": {
+        "message": "分析完成",
+        "data": ["analyze_output"]
+      },
+      "position": {"x": 1000, "y": 100},
+      "size": {"width": 150, "height": 80}
+    },
+    {
+      "id": "end",
+      "name": "结束",
+      "type": "end",
+      "position": {"x": 1200, "y": 100},
+      "size": {"width": 150, "height": 80}
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn1",
+      "source": {"node_id": "start", "port": "output"},
+      "target": {"node_id": "fetch_data", "port": "input"}
+    },
+    {
+      "id": "conn2",
+      "source": {"node_id": "fetch_data", "port": "output"},
+      "target": {"node_id": "check_data", "port": "input"}
+    },
+    {
+      "id": "conn3",
+      "source": {"node_id": "check_data", "port": "output"},
+      "target": {"node_id": "analyze", "port": "input"},
+      "condition": "state.get('check_data_condition_result', False)"
+    },
+    {
+      "id": "conn4",
+      "source": {"node_id": "analyze", "port": "output"},
+      "target": {"node_id": "log_result", "port": "input"}
+    },
+    {
+      "id": "conn5",
+      "source": {"node_id": "log_result", "port": "output"},
+      "target": {"node_id": "end", "port": "input"}
+    }
+  ],
+  "start_node_id": "start",
+  "end_node_ids": ["end"],
+  "variables": {
+    "input_product_id": "string"
+  },
+  "metadata": {
+    "author": "system",
+    "created_at": "2024-01-01T00:00:00"
+  }
+}
+
+
+
+
+
+
+
+
+

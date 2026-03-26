@@ -1,0 +1,60 @@
+# 修复Pydantic验证器问题 - 完整步骤
+# 问题：Pydantic v2 验证器语法不兼容，导致工具注册失败
+
+# ============================================
+# 步骤1：在本地PowerShell上传修复后的文件
+# ============================================
+# 执行以下命令（在PowerShell中）：
+powershell -ExecutionPolicy Bypass -File .\上传修复Pydantic验证器.ps1
+
+# 或者手动执行：
+# scp -i "E:\enterprise-ai-platform\enterprise_ai_platform.pem" -o StrictHostKeyChecking=no mcp-gateway/src/models/tool_models.py ubuntu@43.143.139.197:/opt/enterprise-ai-platform/mcp-gateway/src/models/
+
+# ============================================
+# 步骤2：在服务器上执行修复命令
+# ============================================
+# SSH到服务器后，执行以下命令：
+
+cd /opt/enterprise-ai-platform
+
+# 2.1 重启mcp-gateway（代码已热重载，但需要重启确保加载新代码）
+echo "=== Restarting mcp-gateway ==="
+sudo docker compose restart mcp-gateway
+
+# 2.2 等待服务启动
+echo "=== Waiting for service to start ==="
+sleep 20
+
+# 2.3 检查服务状态
+echo ""
+echo "=== Service Status ==="
+sudo docker compose ps mcp-gateway
+
+# 2.4 查看最新日志（应该没有验证错误了）
+echo ""
+echo "=== Recent Logs ==="
+sudo docker compose logs --tail=30 mcp-gateway
+
+# 2.5 检查是否有验证错误（应该没有输出）
+echo ""
+echo "=== Checking for Validation Errors (should be empty) ==="
+sudo docker compose logs mcp-gateway | grep -i "validation\|必需参数" | tail -5
+
+# 2.6 测试服务
+echo ""
+echo "=== Testing Service ==="
+curl http://localhost:8001/api/health
+
+# ============================================
+# 一键执行命令（服务器上，复制整行）
+# ============================================
+cd /opt/enterprise-ai-platform && sudo docker compose restart mcp-gateway && sleep 20 && echo "=== Status ===" && sudo docker compose ps mcp-gateway && echo "" && echo "=== Logs ===" && sudo docker compose logs --tail=20 mcp-gateway && echo "" && echo "=== Test ===" && curl -s http://localhost:8001/api/health
+
+# ============================================
+# 验证修复成功
+# ============================================
+# 1. 检查容器状态应该是 "Up" 且 "healthy"（不是 "unhealthy"）
+# 2. 日志中不应该有 "ValidationError" 或 "必需参数 'table' 不在参数定义中" 错误
+# 3. 应该看到 "Application startup complete" 或类似消息
+# 4. curl测试应该返回200状态码
+

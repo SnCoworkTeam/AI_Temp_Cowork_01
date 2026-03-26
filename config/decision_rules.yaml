@@ -1,0 +1,674 @@
+# 人工决策规则配置
+# 定义何时需要人工决策、何时可以自动执行、何时需要升级决策
+
+version: "1.0.0"
+last_updated: "2024-01-20T00:00:00Z"
+
+# ==================== 自动执行场景 ====================
+auto_execution_scenarios:
+  # 低风险配置修改
+  low_risk_config_changes:
+    enabled: true
+    description: "低风险的配置修改可以自动执行"
+    
+    conditions:
+      - risk_level: ["low"]
+        change_type: ["configuration"]
+        scope: ["single_service"]
+        impact: ["low"]
+        data_impact: false
+        user_impact: false
+        rollback_available: true
+    
+    allowed_operations:
+      - "update_timeout_settings"
+      - "adjust_retry_parameters"
+      - "modify_log_level"
+      - "update_connection_pool_size"
+      - "change_cache_ttl"
+      - "update_rate_limit_threshold"
+    
+    restrictions:
+      - cannot_modify: ["secrets", "credentials", "api_keys"]
+      - cannot_affect: ["user_data", "business_critical_flows"]
+      - max_change_frequency: "10_per_hour"  # 每小时最多10次
+    
+    execution_requirements:
+      - backup_before_change: true
+      - validate_after_change: true
+      - monitor_for_minutes: 15
+      - auto_rollback_on_error: true
+    
+    examples:
+      - scenario: "增加MCP工具执行超时时间"
+        risk_level: "low"
+        change: "timeout: 30s -> 60s"
+        reason: "仅影响单个工具配置，可快速回滚"
+      
+      - scenario: "调整日志级别"
+        risk_level: "low"
+        change: "log_level: INFO -> DEBUG"
+        reason: "仅影响日志输出，不影响功能"
+  
+  # 已知错误模式的标准修复
+  known_error_pattern_fixes:
+    enabled: true
+    description: "对于已知错误模式，可以自动应用标准修复方案"
+    
+    conditions:
+      - error_pattern: "known_pattern"
+        confidence_score: [0.9, 1.0]  # 置信度90%以上
+        fix_effectiveness_history: [0.8, 1.0]  # 历史修复有效性80%以上
+        occurrences: [3, null]  # 至少出现3次
+        time_window_hours: 24
+    
+    known_patterns:
+      - pattern_id: "mcp_tool_timeout"
+        error_signature: "MCP tool execution timeout"
+        fix_strategy: "retry_with_backoff"
+        success_rate: 0.95
+        min_confidence: 0.9
+      
+      - pattern_id: "workflow_node_failure"
+        error_signature: "Workflow node execution failed"
+        fix_strategy: "state_recovery_and_retry"
+        success_rate: 0.88
+        min_confidence: 0.85
+      
+      - pattern_id: "cache_staleness"
+        error_signature: "Cache data is stale"
+        fix_strategy: "clear_cache_and_refresh"
+        success_rate: 0.92
+        min_confidence: 0.9
+      
+      - pattern_id: "connection_pool_exhausted"
+        error_signature: "Connection pool exhausted"
+        fix_strategy: "increase_pool_size"
+        success_rate: 0.87
+        min_confidence: 0.85
+    
+    execution_requirements:
+      - verify_pattern_match: true
+      - check_historical_success: true
+      - apply_fix_with_monitoring: true
+      - validate_fix_effectiveness: true
+    
+    restrictions:
+      - max_fix_attempts: 3
+      - require_manual_review_after: 10  # 10次自动修复后需要人工审核
+      - exclude_critical_services: true
+  
+  # 非业务时间的紧急修复
+  off_hours_emergency_fixes:
+    enabled: true
+    description: "在非业务时间（如凌晨）可以自动执行紧急修复"
+    
+    conditions:
+      - time_window:
+          start: "22:00"  # 晚上10点
+          end: "06:00"    # 早上6点
+        timezone: "Asia/Shanghai"
+      
+      - urgency_level: ["critical", "high"]
+      - user_impact: ["low", "medium"]  # 用户影响较低
+      - business_hours_impact: false  # 不影响业务时间
+      - rollback_available: true
+    
+    allowed_operations:
+      - "service_restart"
+      - "deployment_rollback"
+      - "configuration_hot_update"
+      - "cache_rebuild"
+      - "index_rebuild"
+    
+    execution_requirements:
+      - notify_oncall: true  # 通知on-call人员
+      - create_incident: true  # 创建事故记录
+      - extended_monitoring: true  # 扩展监控
+      - verify_before_business_hours: true  # 业务时间前验证
+    
+    restrictions:
+      - cannot_execute: ["data_migration", "schema_changes", "user_data_modification"]
+      - max_duration_hours: 2  # 最长执行2小时
+      - require_approval_for: ["production"]
+  
+  # 测试环境的全权修复
+  test_environment_full_control:
+    enabled: true
+    description: "测试环境可以全权自动修复，无需人工干预"
+    
+    conditions:
+      - environment: ["development", "staging", "test"]
+      - data_type: ["non_production", "test_data"]
+    
+    allowed_operations:
+      - "all_configuration_changes"
+      - "service_deployment"
+      - "database_schema_changes"
+      - "data_migration"
+      - "service_restart"
+      - "resource_scaling"
+    
+    execution_requirements:
+      - notify_team: false  # 测试环境不需要通知
+      - log_all_operations: true
+      - allow_rollback: true
+    
+    restrictions:
+      - cannot_affect: ["production_data", "shared_resources"]
+      - max_impact_scope: "test_environment_only"
+
+# ==================== 需要人工决策场景 ====================
+manual_decision_scenarios:
+  # 涉及用户数据的修改
+  user_data_modifications:
+    enabled: true
+    description: "任何涉及用户数据的修改都需要人工决策"
+    severity: "high"
+    
+    triggers:
+      - operation_type: ["update", "delete", "modify"]
+      - data_scope: ["user_data", "personal_information", "user_preferences"]
+      - data_type: ["user_profiles", "user_sessions", "user_activity", "user_permissions"]
+    
+    required_approval:
+      - approver_role: ["admin", "data_protection_officer"]
+      - approval_level: "high"
+      - requires_reason: true
+      - requires_data_impact_assessment: true
+    
+    restrictions:
+      - cannot_auto_execute: true
+      - requires_backup: true
+      - requires_audit_log: true
+      - requires_user_notification: true  # 可能需要通知用户
+    
+    examples:
+      - scenario: "批量更新用户权限"
+        reason: "涉及用户数据，需要人工审核"
+      
+      - scenario: "删除用户会话数据"
+        reason: "影响用户体验，需要人工决策"
+  
+  # 核心业务流程的变更
+  core_business_process_changes:
+    enabled: true
+    description: "核心业务流程的变更需要人工决策"
+    severity: "critical"
+    
+    triggers:
+      - process_type: ["order_processing", "payment_processing", "user_authentication", "data_synchronization"]
+      - impact_scope: ["business_critical", "revenue_generating", "customer_facing"]
+      - change_type: ["workflow_modification", "business_logic_change", "api_contract_change"]
+    
+    required_approval:
+      - approver_role: ["tech_lead", "product_manager", "business_owner"]
+      - approval_level: "critical"
+      - requires_business_impact_analysis: true
+      - requires_stakeholder_notification: true
+    
+    restrictions:
+      - cannot_auto_execute: true
+      - requires_business_approval: true
+      - requires_testing_in_staging: true
+      - requires_rollback_plan: true
+    
+    examples:
+      - scenario: "修改订单处理工作流"
+        reason: "影响核心业务流程，需要业务负责人审批"
+      
+      - scenario: "修改支付接口"
+        reason: "影响收入，需要多方审批"
+  
+  # 架构级别的调整
+  architectural_changes:
+    enabled: true
+    description: "架构级别的调整需要高级别人工决策"
+    severity: "critical"
+    
+    triggers:
+      - change_type: ["architecture_change", "service_decomposition", "database_schema_change", "api_version_change"]
+      - impact_scope: ["multiple_services", "system_wide", "cross_team"]
+      - complexity: ["high", "critical"]
+    
+    required_approval:
+      - approver_role: ["architect", "tech_lead", "engineering_manager"]
+      - approval_level: "critical"
+      - requires_architecture_review: true
+      - requires_impact_analysis: true
+      - requires_team_coordination: true
+    
+    restrictions:
+      - cannot_auto_execute: true
+      - requires_design_document: true
+      - requires_migration_plan: true
+      - requires_rollback_strategy: true
+    
+    examples:
+      - scenario: "数据库schema变更"
+        reason: "影响数据结构和多个服务，需要架构师审批"
+      
+      - scenario: "微服务拆分"
+        reason: "架构级别变更，需要详细设计和审批"
+  
+  # 安全相关的修复
+  security_related_fixes:
+    enabled: true
+    description: "安全相关的修复需要安全团队审批"
+    severity: "critical"
+    
+    triggers:
+      - security_type: ["vulnerability_fix", "authentication_change", "authorization_change", "encryption_change"]
+      - threat_level: ["high", "critical"]
+      - data_type: ["sensitive", "encrypted", "personal"]
+    
+    required_approval:
+      - approver_role: ["security_team", "security_officer", "tech_lead"]
+      - approval_level: "critical"
+      - requires_security_review: true
+      - requires_vulnerability_assessment: true
+    
+    restrictions:
+      - cannot_auto_execute: true
+      - requires_security_audit: true
+      - requires_compliance_check: true
+      - requires_incident_report: true
+    
+    examples:
+      - scenario: "修复认证漏洞"
+        reason: "涉及安全，需要安全团队审批"
+      
+      - scenario: "更新加密算法"
+        reason: "影响数据安全，需要安全专家审核"
+  
+  # 性能敏感的操作
+  performance_sensitive_operations:
+    enabled: true
+    description: "性能敏感的操作需要性能团队审批"
+    severity: "high"
+    
+    triggers:
+      - operation_type: ["performance_optimization", "resource_scaling", "cache_invalidation", "index_rebuild"]
+      - performance_impact: ["high", "critical"]
+      - user_impact: ["high", "critical"]
+      - resource_usage_change: [20, null]  # 资源使用变化超过20%
+    
+    required_approval:
+      - approver_role: ["performance_engineer", "tech_lead", "ops_team"]
+      - approval_level: "high"
+      - requires_performance_analysis: true
+      - requires_load_testing: true
+    
+    restrictions:
+      - cannot_auto_execute: true
+      - requires_performance_baseline: true
+      - requires_monitoring_setup: true
+      - requires_rollback_capability: true
+    
+    examples:
+      - scenario: "大规模缓存清理"
+        reason: "可能影响性能，需要性能团队评估"
+      
+      - scenario: "数据库索引重建"
+        reason: "可能影响查询性能，需要DBA审批"
+
+# ==================== 升级决策场景 ====================
+escalation_scenarios:
+  # 修复失败后的备选方案
+  fix_failure_alternatives:
+    enabled: true
+    description: "当修复失败时，需要升级决策来选择备选方案"
+    escalation_level: "high"
+    
+    triggers:
+      - primary_fix_status: "failed"
+      - fix_attempts: [3, null]  # 尝试3次以上
+      - error_persists: true
+      - impact_increasing: true
+    
+    escalation_requirements:
+      - notify_escalation_targets: ["tech_lead", "on_call", "incident_manager"]
+      - create_incident: true
+      - provide_alternatives: true
+      - require_manual_selection: true
+    
+    alternative_strategies:
+      - strategy: "rollback_and_investigate"
+        description: "回滚修复并深入调查"
+        risk_level: "low"
+      
+      - strategy: "try_alternative_fix"
+        description: "尝试替代修复方案"
+        risk_level: "medium"
+      
+      - strategy: "implement_workaround"
+        description: "实施临时解决方案"
+        risk_level: "medium"
+      
+      - strategy: "escalate_to_expert_team"
+        description: "升级到专家团队"
+        risk_level: "low"
+    
+    decision_timeout_minutes: 30  # 30分钟内必须做出决策
+  
+  # 多方案选择的权衡
+  multiple_solution_choice:
+    enabled: true
+    description: "当有多个修复方案时，需要人工权衡选择"
+    escalation_level: "medium"
+    
+    triggers:
+      - available_solutions: [2, null]  # 2个或更多方案
+      - solution_confidence: [0.6, 0.9]  # 置信度在60%-90%之间
+      - risk_tradeoffs: true
+      - impact_differences: true
+    
+    escalation_requirements:
+      - provide_comparison_analysis: true
+      - highlight_tradeoffs: true
+      - require_decision: true
+    
+    comparison_factors:
+      - "risk_level"
+      - "estimated_time"
+      - "impact_scope"
+      - "success_probability"
+      - "rollback_difficulty"
+      - "resource_requirements"
+    
+    decision_timeout_minutes: 60  # 60分钟内必须做出决策
+  
+  # 重大影响的风险评估
+  major_impact_risk_assessment:
+    enabled: true
+    description: "重大影响的修复需要高级别风险评估和决策"
+    escalation_level: "critical"
+    
+    triggers:
+      - impact_score: [8, 10]  # 影响评分8-10分
+      - affected_users: [1000, null]  # 影响1000+用户
+      - business_impact: ["high", "critical"]
+      - revenue_impact: true
+      - brand_reputation_risk: true
+    
+    escalation_requirements:
+      - notify_executive_team: true
+      - require_senior_approval: true
+      - requires_business_impact_analysis: true
+      - requires_communication_plan: true
+    
+    required_approvers:
+      - role: "cto"
+        required_for: ["critical_impact"]
+      - role: "product_vp"
+        required_for: ["high_business_impact"]
+      - role: "engineering_director"
+        required_for: ["all_major_impacts"]
+    
+    decision_timeout_minutes: 120  # 2小时内必须做出决策
+  
+  # 跨团队协调需求
+  cross_team_coordination:
+    enabled: true
+    description: "需要跨团队协调的修复需要升级决策"
+    escalation_level: "high"
+    
+    triggers:
+      - affected_teams: [2, null]  # 影响2个或更多团队
+      - requires_coordination: true
+      - shared_resources: true
+      - conflicting_schedules: true
+    
+    escalation_requirements:
+      - notify_affected_teams: true
+      - schedule_coordination_meeting: true
+      - create_communication_channel: true
+      - assign_coordinator: true
+    
+    coordination_requirements:
+      - identify_stakeholders: true
+      - align_schedules: true
+      - agree_on_approach: true
+      - establish_communication_protocol: true
+    
+    decision_timeout_minutes: 240  # 4小时内必须做出决策
+
+# ==================== 决策优先级规则 ====================
+decision_priority_rules:
+  # 优先级计算
+  priority_calculation:
+    factors:
+      - name: "urgency"
+        weight: 0.3
+        values:
+          critical: 10
+          high: 7
+          medium: 4
+          low: 1
+      
+      - name: "impact"
+        weight: 0.3
+        values:
+          critical: 10
+          high: 7
+          medium: 4
+          low: 1
+      
+      - name: "risk"
+        weight: 0.2
+        values:
+          critical: 10
+          high: 7
+          medium: 4
+          low: 1
+      
+      - name: "affected_users"
+        weight: 0.1
+        calculation: "log10(affected_users + 1) * 2"
+      
+      - name: "business_impact"
+        weight: 0.1
+        values:
+          revenue_impact: 10
+          customer_impact: 7
+          operational_impact: 4
+          minimal_impact: 1
+  
+  # 优先级阈值
+  priority_thresholds:
+    critical:
+      min_score: 8.0
+      max_response_time_minutes: 15
+      escalation_targets: ["cto", "on_call", "incident_manager"]
+    
+    high:
+      min_score: 6.0
+      max_response_time_minutes: 60
+      escalation_targets: ["tech_lead", "on_call"]
+    
+    medium:
+      min_score: 4.0
+      max_response_time_minutes: 240
+      escalation_targets: ["team_lead"]
+    
+    low:
+      min_score: 0.0
+      max_response_time_minutes: 480
+      escalation_targets: ["team_member"]
+
+# ==================== 决策超时和自动处理 ====================
+decision_timeouts:
+  # 超时配置
+  timeout_rules:
+    - decision_level: "critical"
+      timeout_minutes: 15
+      auto_action: "escalate"
+      escalation_targets: ["cto", "incident_manager"]
+    
+    - decision_level: "high"
+      timeout_minutes: 60
+      auto_action: "escalate"
+      escalation_targets: ["tech_lead", "on_call"]
+    
+    - decision_level: "medium"
+      timeout_minutes: 240
+      auto_action: "remind"
+      reminder_intervals: [60, 120, 180]  # 每60分钟提醒一次
+    
+    - decision_level: "low"
+      timeout_minutes: 480
+      auto_action: "remind"
+      reminder_intervals: [240, 360]
+  
+  # 自动处理规则
+  auto_handling:
+    enabled: true
+    rules:
+      - condition: "timeout AND low_risk AND low_impact"
+        action: "auto_approve"
+        require_audit_log: true
+      
+      - condition: "timeout AND high_risk"
+        action: "auto_escalate"
+        escalation_level: "high"
+      
+      - condition: "timeout AND critical_impact"
+        action: "auto_escalate"
+        escalation_level: "critical"
+
+# ==================== 决策审计和追踪 ====================
+decision_audit:
+  # 审计要求
+  audit_requirements:
+    - record_all_decisions: true
+    - capture_decision_context: true
+    - track_decision_timeline: true
+    - store_decision_rationale: true
+    - log_approver_actions: true
+  
+  # 审计字段
+  audit_fields:
+    - "decision_id"
+    - "decision_type"
+    - "decision_timestamp"
+    - "approver"
+    - "approval_reason"
+    - "risk_assessment"
+    - "impact_analysis"
+    - "alternatives_considered"
+    - "decision_outcome"
+    - "follow_up_required"
+  
+  # 审计保留
+  retention:
+    policy: "retain_all"
+    duration_days: 365
+    archive_after_days: 90
+
+# ==================== 环境特定配置 ====================
+environment_configs:
+  development:
+    auto_execution_scenarios:
+      low_risk_config_changes:
+        enabled: true
+        restrictions: []  # 开发环境无限制
+      
+      test_environment_full_control:
+        enabled: true
+        allowed_operations: ["all"]  # 允许所有操作
+    
+    manual_decision_scenarios:
+      user_data_modifications:
+        enabled: false  # 开发环境不需要审批
+    
+    escalation_scenarios:
+      major_impact_risk_assessment:
+        enabled: false  # 开发环境不需要高级别审批
+  
+  staging:
+    auto_execution_scenarios:
+      low_risk_config_changes:
+        enabled: true
+        restrictions:
+          - cannot_modify: ["secrets", "production_config"]
+    
+    manual_decision_scenarios:
+      user_data_modifications:
+        enabled: true
+        required_approval:
+          approver_role: ["tech_lead"]
+    
+    escalation_scenarios:
+      major_impact_risk_assessment:
+        enabled: true
+        required_approvers:
+          - role: "tech_lead"
+  
+  production:
+    auto_execution_scenarios:
+      low_risk_config_changes:
+        enabled: true
+        restrictions:
+          - cannot_modify: ["secrets", "credentials", "api_keys", "production_config"]
+          - max_change_frequency: "5_per_hour"
+      
+      known_error_pattern_fixes:
+        enabled: true
+        min_confidence: 0.95  # 生产环境要求更高置信度
+        min_success_rate: 0.9  # 要求更高的成功率
+    
+    manual_decision_scenarios:
+      # 生产环境所有手动决策场景都启用
+      user_data_modifications:
+        enabled: true
+        required_approval:
+          approver_role: ["admin", "data_protection_officer"]
+          approval_level: "critical"
+      
+      core_business_process_changes:
+        enabled: true
+        required_approval:
+          approver_role: ["tech_lead", "product_manager", "business_owner"]
+          approval_level: "critical"
+      
+      architectural_changes:
+        enabled: true
+        required_approval:
+          approver_role: ["architect", "cto"]
+          approval_level: "critical"
+      
+      security_related_fixes:
+        enabled: true
+        required_approval:
+          approver_role: ["security_team", "security_officer"]
+          approval_level: "critical"
+      
+      performance_sensitive_operations:
+        enabled: true
+        required_approval:
+          approver_role: ["performance_engineer", "tech_lead"]
+          approval_level: "high"
+    
+    escalation_scenarios:
+      # 生产环境所有升级场景都启用
+      fix_failure_alternatives:
+        enabled: true
+        decision_timeout_minutes: 15  # 生产环境更短的超时
+      
+      multiple_solution_choice:
+        enabled: true
+        decision_timeout_minutes: 30
+      
+      major_impact_risk_assessment:
+        enabled: true
+        required_approvers:
+          - role: "cto"
+            required_for: ["all"]
+          - role: "product_vp"
+            required_for: ["high_business_impact"]
+        decision_timeout_minutes: 60
+      
+      cross_team_coordination:
+        enabled: true
+        decision_timeout_minutes: 120
+

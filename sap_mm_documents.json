@@ -1,0 +1,71 @@
+{
+  "documents": [
+    {
+      "title": "SAP MM采购流程",
+      "content": "SAP MM采购流程包括以下步骤：\n\n1. 需求识别：业务部门提出采购需求，确定需要采购的物料和数量\n2. 采购申请创建：在SAP系统中创建采购申请(EBAN)，记录采购需求\n3. 供应商选择：根据采购信息记录(Info Record)和货源清单(Source List)选择合适的供应商\n4. 采购订单创建：向选定的供应商下达采购订单(EKKO/EKPO)，包含物料、数量、价格、交货日期等信息\n5. 收货：供应商交付物料后，在系统中创建收货凭证(Material Document)，记录实际收货数量\n6. 发票校验：收到供应商发票后，进行发票校验(Invoice Verification)，核对发票与采购订单和收货单的一致性\n7. 付款：发票校验通过后，触发财务付款流程\n\n关键表：\n- EBAN: 采购申请\n- EKKO/EKPO: 采购订单\n- MKPF/MSEG: 物料凭证\n- RSEG: 发票校验",
+      "content_type": "sop",
+      "metadata": {
+        "module": "MM",
+        "category": "business_process",
+        "tags": ["SAP", "MM", "采购", "流程", "SOP", "业务流程"]
+      }
+    },
+    {
+      "title": "SAP MM数据字典 - MARA表（物料主数据）",
+      "content": "MARA表是SAP MM模块的物料主数据表，存储物料的基本信息。\n\n关键字段：\n- MATNR: 物料号（Material Number），物料的唯一标识\n- MAKTX: 物料描述（Material Description），物料的文本描述\n- MEINS: 基本计量单位（Base Unit of Measure），如PC、KG等\n- MTART: 物料类型（Material Type），如FERT（成品）、HALB（半成品）、ROH（原材料）等\n- MATKL: 物料组（Material Group），用于物料分类\n- BRGEW: 毛重（Gross Weight）\n- NTGEW: 净重（Net Weight）\n- GEWEI: 重量单位（Weight Unit）\n- VOLUM: 体积（Volume）\n- VOLEH: 体积单位（Volume Unit）\n\n相关表：\n- MARC: 物料工厂视图\n- MARD: 物料库存地点视图\n- MAKT: 物料描述文本表",
+      "content_type": "data_dictionary",
+      "metadata": {
+        "module": "MM",
+        "category": "data_dictionary",
+        "sap_table": "MARA",
+        "tags": ["SAP", "MM", "数据字典", "MARA", "物料", "主数据"]
+      }
+    },
+    {
+      "title": "SAP MM数据字典 - EKKO/EKPO表（采购订单）",
+      "content": "EKKO/EKPO表是SAP MM模块的采购订单表，存储采购订单的抬头和行项目信息。\n\nEKKO表（采购订单抬头）：\n- EBELN: 采购订单号（Purchase Order Number）\n- LIFNR: 供应商号（Vendor Number）\n- BEDAT: 采购订单日期（Purchase Order Date）\n- ZTERM: 付款条件（Payment Terms）\n- EKORG: 采购组织（Purchasing Organization）\n- EKGRP: 采购组（Purchasing Group）\n\nEKPO表（采购订单行项目）：\n- EBELN: 采购订单号\n- EBELP: 采购订单行项目号（Item Number）\n- MATNR: 物料号（Material Number）\n- MENGE: 采购数量（Purchase Quantity）\n- NETPR: 净价（Net Price）\n- PEINH: 价格单位（Price Unit）\n- MEINS: 计量单位（Unit of Measure）\n- ELIKZ: 收货完成标识（Delivery Completed Indicator）",
+      "content_type": "data_dictionary",
+      "metadata": {
+        "module": "MM",
+        "category": "data_dictionary",
+        "sap_table": "EKKO",
+        "tags": ["SAP", "MM", "数据字典", "EKKO", "EKPO", "采购订单"]
+      }
+    },
+    {
+      "title": "SAP MM库存管理流程",
+      "content": "SAP MM库存管理流程包括以下主要操作：\n\n1. 入库操作：\n   - 采购收货：从供应商接收物料，移动类型101\n   - 生产入库：生产完成的物料入库，移动类型101\n   - 退货入库：退货物料重新入库，移动类型102\n\n2. 出库操作：\n   - 生产消耗：生产消耗物料，移动类型201\n   - 销售出库：销售订单出库，移动类型601\n   - 报废出库：物料报废，移动类型551\n\n3. 库存转移：\n   - 库存地点间转移：移动类型311\n   - 工厂间转移：移动类型301\n   - 批次转移：移动类型309\n\n4. 库存盘点：\n   - 创建盘点凭证\n   - 执行盘点\n   - 盘点差异处理\n\n关键表：\n- MKPF: 物料凭证抬头\n- MSEG: 物料凭证行项目\n- MARD: 库存地点库存",
+      "content_type": "sop",
+      "metadata": {
+        "module": "MM",
+        "category": "business_process",
+        "tags": ["SAP", "MM", "库存", "管理", "流程", "SOP"]
+      }
+    },
+    {
+      "title": "SAP MM供应商管理",
+      "content": "SAP MM供应商管理包括以下内容：\n\n1. 供应商主数据：\n   - 一般数据（LFA1）：供应商名称、地址、联系方式等\n   - 采购数据（LFM1）：采购组织、付款条件等\n   - 财务数据（LFB1）：银行信息、付款方式等\n\n2. 供应商评估：\n   - 价格评估\n   - 质量评估\n   - 交货评估\n   - 服务评估\n\n3. 供应商关系管理：\n   - 供应商分类\n   - 供应商等级\n   - 供应商绩效评估\n\n关键表：\n- LFA1: 供应商一般数据\n- LFM1: 供应商采购数据\n- LFB1: 供应商财务数据",
+      "content_type": "sop",
+      "metadata": {
+        "module": "MM",
+        "category": "business_process",
+        "tags": ["SAP", "MM", "供应商", "管理", "主数据"]
+      }
+    },
+    {
+      "title": "SAP MM物料分类",
+      "content": "SAP MM物料分类系统用于对物料进行多维度分类管理。\n\n分类层次：\n1. 物料类型（Material Type）：\n   - FERT: 成品\n   - HALB: 半成品\n   - ROH: 原材料\n   - HIBE: 贸易商品\n\n2. 物料组（Material Group）：\n   - 用于物料的分组管理\n   - 便于统计和分析\n\n3. 物料分类（Material Classification）：\n   - 使用分类系统（CLASS）\n   - 可以定义多个分类特征\n   - 支持多维度分类\n\n关键表：\n- T023T: 物料类型文本\n- T023: 物料组\n- KLAH: 分类层次\n- KSSK: 分类分配",
+      "content_type": "sop",
+      "metadata": {
+        "module": "MM",
+        "category": "business_process",
+        "tags": ["SAP", "MM", "物料", "分类", "管理"]
+      }
+    }
+  ]
+}
+
+
+
+
+

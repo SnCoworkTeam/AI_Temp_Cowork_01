@@ -1,0 +1,60 @@
+# 启动所有服务的最终解决方案
+# postgres已停止，现在使用docker compose统一启动
+
+cd /opt/enterprise-ai-platform
+
+# ============================================
+# 步骤1: 使用docker compose启动所有服务
+# ============================================
+# 这会启动postgres、redis和mcp-gateway
+# 注意：redis-commander和sap-mcp-web-client不在compose中，会继续运行
+sudo docker compose up -d postgres redis mcp-gateway
+
+# 等待所有服务启动（约20-30秒）
+sleep 25
+
+# ============================================
+# 步骤2: 检查所有服务状态
+# ============================================
+# 查看docker compose管理的服务
+sudo docker compose ps
+
+# 查看所有容器（包括不在compose中的）
+sudo docker ps
+
+# ============================================
+# 步骤3: 验证基础服务
+# ============================================
+# 测试postgres
+sudo docker exec enterprise-ai-postgres pg_isready -U postgres
+
+# 测试redis
+sudo docker exec enterprise-ai-redis redis-cli ping
+
+# ============================================
+# 步骤4: 查看mcp-gateway日志
+# ============================================
+sudo docker compose logs --tail=50 mcp-gateway
+
+# ============================================
+# 步骤5: 测试mcp-gateway服务
+# ============================================
+curl http://localhost:8001/api/health
+
+# ============================================
+# 如果启动失败，查看详细日志
+# ============================================
+# 查看mcp-gateway完整日志
+sudo docker compose logs mcp-gateway
+
+# 检查mcp-gateway容器状态
+sudo docker ps -a | grep mcp-gateway
+
+# 如果容器存在但未运行，查看退出原因
+sudo docker inspect enterprise-ai-mcp-gateway 2>/dev/null | grep -A 10 "State" || echo "Container does not exist"
+
+# ============================================
+# 一键启动命令
+# ============================================
+sudo docker compose up -d postgres redis mcp-gateway && sleep 25 && sudo docker compose ps && echo "" && echo "Testing services..." && sudo docker exec enterprise-ai-postgres pg_isready -U postgres && sudo docker exec enterprise-ai-redis redis-cli ping && curl http://localhost:8001/api/health
+

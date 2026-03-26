@@ -1,0 +1,190 @@
+name: "质量问题处理流程"
+id: "workflow:quality_issue_handling"
+description: "处理供应商质量问题的完整流程，包括问题验证、暂停付款、通知供应商和创建调查任务"
+version: "1.0.0"
+enabled: true
+
+# 工作流触发器
+triggers:
+  - type: "intent"
+    conditions:
+      - intent: "质量问题处理"
+      - business_domain: "procurement"
+    description: "用户报告质量问题或要求处理质量问题时触发"
+  
+  - type: "event"
+    conditions:
+      - event_type: "quality_issue_reported"
+    description: "质量系统报告质量问题时触发"
+
+# 工作流步骤
+steps:
+  # 步骤1: 验证质量问题
+  - step_id: "verify_issue"
+    name: "验证质量问题"
+    activity_id: "activity:quality:verify_issue"
+    component_id: "component:quality:check_supplier"
+    description: "检查供应商的历史质量记录，验证问题的严重程度和影响范围"
+    
+    dependencies: []
+    
+    actions:
+      - action: "check_supplier_quality"
+        parameters:
+          supplier_code: "${supplier_code}"
+          days_back: 90
+      
+      - action: "analyze_issue_pattern"
+        parameters:
+          issue_type: "${issue_type}"
+          severity: "${severity}"
+    
+    outputs:
+      - has_quality_issues
+      - issues_count
+      - quality_score
+      - issue_details
+      - risk_level
+      - recommendation
+    
+    output_mapping:
+      issue_valid: "has_quality_issues"
+    
+    conditions:
+      - if: "has_quality_issues == true && risk_level == 'high'"
+        then: "proceed_to_hold_payment"
+      - elif: "has_quality_issues == true && risk_level == 'medium'"
+        then: "proceed_to_notify"
+      - else: "issue_resolved_or_low_risk"
+    
+    timeout: 60
+    on_error:
+      action: "notify_error"
+      retry: false
+
+  # 步骤2: 暂停付款
+  - step_id: "hold_payments"
+    name: "暂停付款"
+    activity_id: "activity:procurement:hold_payment"
+    component_id: "component:sap:payment_hold"
+    description: "暂停对供应商的相关订单付款"
+    
+    dependencies:
+      - verify_issue
+    
+    actions:
+      - action: "find_related_orders"
+        parameters:
+          supplier_code: "${supplier_code}"
+          status: ["pending", "completed"]
+      
+      - action: "hold_payment"
+        parameters:
+          supplier_code: "${supplier_code}"
+          po_numbers: "${related_po_numbers}"
+          reason: "质量问题：${issue_description}"
+          hold_type: "quality_issue"
+    
+    outputs:
+      - hold_id
+      - affected_orders
+      - payment_hold_status
+    
+    conditions:
+      - if: "has_quality_issues == true && payment_hold_status == 'success'"
+        then: "proceed_to_notify"
+      - else: "handle_hold_error"
+    
+    timeout: 45
+    on_error:
+      action: "notify_error"
+      retry: true
+      max_retries: 2
+
+  # 步骤3: 通知供应商
+  - step_id: "notify_supplier"
+    name: "通知供应商"
+    activity_id: "activity:procurement:notify_supplier"
+    component_id: "component:email:send_quality_notice"
+    description: "向供应商发送质量问题通知"
+    
+    dependencies:
+      - hold_payments
+    
+    actions:
+      - action: "send_quality_notice"
+        parameters:
+          to: "${supplier_email}"
+          subject: "质量问题通知 - ${supplier_name}"
+          template: "quality_issue_notice"
+          data:
+            supplier_name: "${supplier_name}"
+            issue_description: "${issue_description}"
+            affected_orders: "${affected_orders}"
+            required_action: "${recommendation}"
+    
+    outputs:
+      - notification_sent
+      - notification_status
+    
+    conditions:
+      - if: "notification_sent == true"
+        then: "proceed_to_create_task"
+      - else: "log_notification_failure"
+    
+    timeout: 30
+    on_error:
+      action: "log_error"
+      retry: false
+
+  # 步骤4: 创建调查任务
+  - step_id: "create_task"
+    name: "创建调查任务"
+    activity_id: "activity:quality:create_task"
+    component_id: "component:task:create_investigation"
+    description: "创建质量问题调查任务，分配给质量部门"
+    
+    dependencies:
+      - verify_issue
+    
+    actions:
+      - action: "create_investigation_task"
+        parameters:
+          title: "供应商质量问题调查 - ${supplier_name}"
+          description: "${issue_description}"
+          assignee: "quality_department"
+          priority: "${risk_level}"
+          related_orders: "${related_po_numbers}"
+          due_date: "${due_date}"
+    
+    outputs:
+      - task_id
+      - task_status
+      - task_created_at
+    
+    conditions:
+      - if: "task_status == 'created'"
+        then: "workflow_complete"
+      - else: "handle_task_creation_error"
+    
+    timeout: 30
+    on_error:
+      action: "notify_error"
+      retry: false
+
+# 工作流输出
+outputs:
+  - hold_id
+  - affected_orders
+  - task_id
+  - risk_level
+  - recommendations
+  - workflow_status
+
+# 错误处理
+error_handling:
+  default_action: "notify_admin"
+  retry_policy:
+    max_retries: 3
+    retry_delay: 10
+

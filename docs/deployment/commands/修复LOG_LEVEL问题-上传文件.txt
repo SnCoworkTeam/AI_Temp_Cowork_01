@@ -1,0 +1,52 @@
+# 修复LOG_LEVEL问题 - 需要上传的文件
+# 问题：.env文件中的LOG_LEVEL=INFO（大写），但uvicorn需要小写info
+
+# ============================================
+# 需要上传的文件
+# ============================================
+
+# 1. 修复后的docker-compose.yml（已修复所有服务的LOG_LEVEL转换）
+scp -i "E:\enterprise-ai-platform\enterprise_ai_platform.pem" docker-compose.yml ubuntu@43.143.139.197:/opt/enterprise-ai-platform/
+
+# 2. 修复后的env.example（可选，用于参考）
+scp -i "E:\enterprise-ai-platform\enterprise_ai_platform.pem" env.example ubuntu@43.143.139.197:/opt/enterprise-ai-platform/
+
+# ============================================
+# 在服务器上执行的操作
+# ============================================
+
+cd /opt/enterprise-ai-platform
+
+# 方法1: 修改.env文件中的LOG_LEVEL为小写（推荐）
+sed -i 's/^LOG_LEVEL=INFO$/LOG_LEVEL=info/' .env
+
+# 或者直接编辑.env文件
+# nano .env
+# 将 LOG_LEVEL=INFO 改为 LOG_LEVEL=info
+
+# 方法2: 重启mcp-gateway（docker-compose.yml已修复，会自动转换）
+sudo docker compose restart mcp-gateway
+
+# 或者重新创建
+sudo docker compose up -d --force-recreate mcp-gateway
+
+# 等待启动
+sleep 15
+
+# 检查状态
+sudo docker compose ps mcp-gateway
+
+# 查看日志
+sudo docker compose logs --tail=30 mcp-gateway
+
+# 测试服务
+curl http://localhost:8001/api/health
+
+# ============================================
+# 验证修复
+# ============================================
+# 查看日志，应该不再有 "Invalid value for '--log-level': 'INFO'" 错误
+sudo docker compose logs mcp-gateway | grep -i "log-level" | tail -5
+
+# 如果看到 "Application startup complete" 或类似消息，说明启动成功
+

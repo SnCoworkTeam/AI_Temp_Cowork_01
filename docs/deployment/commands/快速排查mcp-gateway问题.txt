@@ -1,0 +1,26 @@
+# 快速排查mcp-gateway启动失败
+# 复制执行
+
+cd /opt/enterprise-ai-platform
+
+# 1. 查看日志（最重要）
+echo "=== mcp-gateway logs ==="
+sudo docker compose logs --tail=50 mcp-gateway
+
+# 2. 检查容器状态
+echo "=== Container status ==="
+sudo docker ps -a | grep mcp-gateway
+
+# 3. 检查退出码
+echo "=== Exit code ==="
+sudo docker inspect enterprise-ai-mcp-gateway | grep -A 3 "ExitCode"
+
+# 4. 检查文件是否存在
+echo "=== Checking files ==="
+ls -la mcp-gateway/src/main.py 2>&1
+ls -la shared_libs/requirements.txt 2>&1
+
+# 5. 如果日志显示依赖问题，重新构建
+# sudo docker compose build mcp-gateway
+# sudo docker compose up -d mcp-gateway
+

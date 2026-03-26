@@ -1,0 +1,68 @@
+# 正确启动mcp-gateway的步骤
+# 网络错误可以忽略，但需要确保依赖服务运行
+
+cd /opt/enterprise-ai-platform
+
+# 方法1: 确保依赖服务运行后再启动mcp-gateway（推荐）
+
+# 步骤1: 确保postgres和redis运行
+sudo docker compose up -d postgres redis
+
+# 步骤2: 等待服务就绪（约10-15秒）
+sleep 15
+
+# 步骤3: 检查依赖服务状态
+sudo docker compose ps postgres redis
+
+# 步骤4: 启动mcp-gateway（忽略网络警告）
+sudo docker compose up -d mcp-gateway
+
+# 步骤5: 检查mcp-gateway状态
+sudo docker compose ps mcp-gateway
+
+# 步骤6: 查看启动日志
+sudo docker compose logs --tail=50 mcp-gateway
+
+# 步骤7: 测试健康检查
+curl http://localhost:8001/api/health
+
+# ============================================
+# 方法2: 如果方法1失败，使用强制重新创建
+# ============================================
+
+# 停止mcp-gateway（如果存在）
+sudo docker compose stop mcp-gateway
+
+# 删除mcp-gateway容器（如果存在）
+sudo docker compose rm -f mcp-gateway
+
+# 重新构建并启动
+sudo docker compose up -d --build mcp-gateway
+
+# ============================================
+# 方法3: 如果redis-commander导致问题，先停止它
+# ============================================
+
+# 停止redis-commander（如果需要）
+sudo docker stop enterprise-ai-redis-commander
+
+# 启动mcp-gateway
+sudo docker compose up -d mcp-gateway
+
+# 重新启动redis-commander（如果需要）
+sudo docker start enterprise-ai-redis-commander
+
+# ============================================
+# 验证服务运行
+# ============================================
+
+# 检查所有服务状态
+sudo docker compose ps
+
+# 查看mcp-gateway日志
+sudo docker compose logs -f mcp-gateway
+
+# 测试API
+curl http://localhost:8001/api/health
+curl http://localhost:8001/api/tools
+

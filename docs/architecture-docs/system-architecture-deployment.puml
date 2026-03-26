@@ -1,0 +1,189 @@
+@startuml LuminaOS系统部署架构图
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam componentStyle rectangle
+skinparam linetype ortho
+
+title LuminaOS 企业AI平台 - 部署架构图
+
+' 定义颜色
+skinparam component {
+    BackgroundColor<<Container>> #E3F2FD
+    BackgroundColor<<Network>> #FFF9C4
+    BackgroundColor<<Storage>> #F1F8E9
+    BorderColor #1976D2
+    ArrowColor #424242
+}
+
+' ============================================
+' Docker网络层
+' ============================================
+package "Docker网络" <<Network>> {
+    component [Docker Network\nenterprise-ai-network] as DockerNetwork
+}
+
+' ============================================
+' 前端容器
+' ============================================
+package "前端容器" <<Container>> {
+    component [web-ui:latest\nPort: 3000] as WebUIContainer
+}
+
+' ============================================
+' API网关容器
+' ============================================
+package "API网关容器" <<Container>> {
+    component [api-gateway:latest\nPort: 8080] as APIGatewayContainer
+}
+
+' ============================================
+' 核心服务容器
+' ============================================
+package "核心服务容器" <<Container>> {
+    component [registry-service:latest\nPort: 8000] as RegistryContainer
+    component [config-center:latest\nPort: 8090] as ConfigCenterContainer
+}
+
+' ============================================
+' AI服务容器
+' ============================================
+package "AI服务容器" <<Container>> {
+    component [agent-service:latest\nPort: 8010] as AgentServiceContainer
+    component [agent-orchestrator:latest\nPort: 8011] as AgentOrchestratorContainer
+    component [agent-registry:latest\nPort: 8012] as AgentRegistryContainer
+    component [workflow-engine:latest\nPort: 8002] as WorkflowEngineContainer
+    component [dag-orchestrator:latest\nPort: 8009] as DAGOrchestratorContainer
+}
+
+' ============================================
+' 数据服务容器
+' ============================================
+package "数据服务容器" <<Container>> {
+    component [knowledge-base:latest\nPort: 8004] as KnowledgeBaseContainer
+    component [metadata-service:latest\nPort: 8005] as MetadataServiceContainer
+    component [memory-service:latest\nPort: 8013] as MemoryServiceContainer
+    component [vector-coordinator:latest\nPort: 8020] as VectorCoordinatorContainer
+}
+
+' ============================================
+' 集成服务容器
+' ============================================
+package "集成服务容器" <<Container>> {
+    component [mcp-gateway:latest\nPort: 8001] as MCPGatewayContainer
+    component [sap-mcp-server:latest\nPort: 3001] as SAPMCPServerContainer
+    component [sap-metadata-agent:latest\nPort: 8015] as SAPMetadataAgentContainer
+    component [joyagent-adapter:latest\nPort: 8007] as JoyAgentAdapterContainer
+}
+
+' ============================================
+' 基础服务容器
+' ============================================
+package "基础服务容器" <<Container>> {
+    component [auth-service:latest\nPort: 8003] as AuthServiceContainer
+    component [chat-service:latest\nPort: 8006] as ChatServiceContainer
+}
+
+' ============================================
+' 数据库容器
+' ============================================
+package "数据库容器" <<Storage>> {
+    database "postgres:15\nPort: 5432" as PostgresContainer
+    database "redis:7-alpine\nPort: 6379" as RedisContainer
+    database "qdrant/qdrant:latest\nPort: 6333" as QdrantContainer
+    database "neo4j:5\nPort: 7474" as Neo4jContainer
+}
+
+' ============================================
+' 网络连接
+' ============================================
+WebUIContainer --> DockerNetwork
+APIGatewayContainer --> DockerNetwork
+RegistryContainer --> DockerNetwork
+ConfigCenterContainer --> DockerNetwork
+
+AgentServiceContainer --> DockerNetwork
+AgentOrchestratorContainer --> DockerNetwork
+AgentRegistryContainer --> DockerNetwork
+WorkflowEngineContainer --> DockerNetwork
+DAGOrchestratorContainer --> DockerNetwork
+
+KnowledgeBaseContainer --> DockerNetwork
+MetadataServiceContainer --> DockerNetwork
+MemoryServiceContainer --> DockerNetwork
+VectorCoordinatorContainer --> DockerNetwork
+
+MCPGatewayContainer --> DockerNetwork
+SAPMCPServerContainer --> DockerNetwork
+SAPMetadataAgentContainer --> DockerNetwork
+JoyAgentAdapterContainer --> DockerNetwork
+
+AuthServiceContainer --> DockerNetwork
+ChatServiceContainer --> DockerNetwork
+
+PostgresContainer --> DockerNetwork
+RedisContainer --> DockerNetwork
+QdrantContainer --> DockerNetwork
+Neo4jContainer --> DockerNetwork
+
+' ============================================
+' 服务间通信
+' ============================================
+WebUIContainer --> APIGatewayContainer : HTTP/WebSocket
+APIGatewayContainer --> AgentServiceContainer : HTTP
+APIGatewayContainer --> WorkflowEngineContainer : HTTP
+APIGatewayContainer --> KnowledgeBaseContainer : HTTP
+APIGatewayContainer --> MetadataServiceContainer : HTTP
+APIGatewayContainer --> AuthServiceContainer : HTTP
+APIGatewayContainer --> ChatServiceContainer : HTTP
+
+AgentServiceContainer --> PostgresContainer : PostgreSQL
+AgentServiceContainer --> RedisContainer : Redis
+AgentServiceContainer --> QdrantContainer : gRPC
+
+WorkflowEngineContainer --> PostgresContainer : PostgreSQL
+WorkflowEngineContainer --> RedisContainer : Redis
+
+KnowledgeBaseContainer --> PostgresContainer : PostgreSQL
+KnowledgeBaseContainer --> QdrantContainer : gRPC
+KnowledgeBaseContainer --> Neo4jContainer : Bolt
+
+MetadataServiceContainer --> PostgresContainer : PostgreSQL
+MetadataServiceContainer --> Neo4jContainer : Bolt
+
+MemoryServiceContainer --> PostgresContainer : PostgreSQL
+MemoryServiceContainer --> QdrantContainer : gRPC
+
+AuthServiceContainer --> PostgresContainer : PostgreSQL
+ChatServiceContainer --> PostgresContainer : PostgreSQL
+ChatServiceContainer --> RedisContainer : Redis
+
+' ============================================
+' Docker Compose配置
+' ============================================
+note right of DockerNetwork
+  **Docker Compose配置**
+  - 网络：enterprise-ai-network
+  - 所有服务在同一网络
+  - 服务间通过服务名通信
+  - 端口映射到宿主机
+end note
+
+note bottom of PostgresContainer
+  **数据持久化**
+  - 卷挂载：./data/postgres
+  - 数据备份：定期备份
+  - 迁移工具：Alembic
+end note
+
+note bottom of QdrantContainer
+  **向量存储**
+  - 卷挂载：./data/qdrant
+  - 持久化向量索引
+  - 支持分布式部署
+end note
+
+@enduml
+
+
+
+

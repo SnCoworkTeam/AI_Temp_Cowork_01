@@ -1,0 +1,39 @@
+# 分步启动 - 绕过网络删除问题
+# 复制执行以下命令
+
+cd /opt/enterprise-ai-platform
+
+# 步骤1: 直接启动postgres
+echo "Starting postgres..."
+sudo docker start enterprise-ai-postgres
+sleep 15
+
+# 步骤2: 检查并启动redis
+echo "Starting redis..."
+if sudo docker ps -a | grep -q enterprise-ai-redis; then
+    sudo docker start enterprise-ai-redis 2>/dev/null || sudo docker compose up -d redis
+else
+    sudo docker compose up -d redis
+fi
+sleep 5
+
+# 步骤3: 确保网络存在
+echo "Checking network..."
+sudo docker network create enterprise-ai-network 2>/dev/null || echo "Network exists"
+sudo docker network connect enterprise-ai-network enterprise-ai-postgres 2>/dev/null || echo "Postgres already in network"
+
+# 步骤4: 启动mcp-gateway
+echo "Starting mcp-gateway..."
+sudo docker compose up -d mcp-gateway
+sleep 20
+
+# 步骤5: 检查所有服务
+echo "Checking services..."
+sudo docker ps
+
+# 步骤6: 测试服务
+echo "Testing services..."
+sudo docker exec enterprise-ai-postgres pg_isready -U postgres
+sudo docker exec enterprise-ai-redis redis-cli ping
+curl http://localhost:8001/api/health
+

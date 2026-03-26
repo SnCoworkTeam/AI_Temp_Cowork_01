@@ -1,0 +1,93 @@
+# 解决postgres被停止的问题
+# 问题：使用docker start启动的postgres不在docker compose管理下
+# 解决：确保所有服务都通过docker compose管理
+
+cd /opt/enterprise-ai-platform
+
+# ============================================
+# 方法1: 停止所有容器，然后统一用docker compose启动（推荐）
+# ============================================
+# 停止postgres（如果正在运行）
+sudo docker stop enterprise-ai-postgres
+
+# 使用docker compose统一启动所有服务
+sudo docker compose up -d postgres redis mcp-gateway
+
+# 等待所有服务启动
+sleep 20
+
+# 检查状态
+sudo docker compose ps
+
+# ============================================
+# 方法2: 如果postgres有重要数据，先确保它在docker compose管理下
+# ============================================
+# 停止postgres
+sudo docker stop enterprise-ai-postgres
+
+# 使用docker compose启动postgres（这样它就在compose管理下了）
+sudo docker compose up -d postgres
+
+# 等待postgres就绪
+sleep 15
+
+# 然后启动其他服务
+sudo docker compose up -d redis mcp-gateway
+
+# 等待服务启动
+sleep 15
+
+# 检查状态
+sudo docker compose ps
+
+# ============================================
+# 方法3: 修改启动顺序，先启动postgres和redis
+# ============================================
+# 步骤1: 停止postgres（如果运行中）
+sudo docker stop enterprise-ai-postgres
+
+# 步骤2: 使用docker compose启动postgres和redis
+sudo docker compose up -d postgres redis
+
+# 等待服务就绪
+sleep 20
+
+# 步骤3: 验证基础服务
+sudo docker compose ps postgres redis
+
+# 步骤4: 启动mcp-gateway（此时postgres已在compose管理下，不会被停止）
+sudo docker compose up -d mcp-gateway
+
+# 等待mcp-gateway启动
+sleep 15
+
+# 检查所有服务
+sudo docker compose ps
+
+# ============================================
+# 方法4: 检查docker-compose.yml中的depends_on配置
+# ============================================
+# 查看mcp-gateway的依赖配置
+grep -A 10 "mcp-gateway:" docker-compose.yml | grep -A 5 "depends_on"
+
+# 如果depends_on配置了postgres，Docker Compose会确保postgres先启动
+# 但如果postgres不在compose管理下，compose会尝试停止并重新创建它
+
+# ============================================
+# 推荐的一键启动命令
+# ============================================
+# 停止postgres，然后用compose统一管理
+sudo docker stop enterprise-ai-postgres 2>/dev/null; sudo docker compose up -d postgres redis mcp-gateway && sleep 20 && sudo docker compose ps
+
+# ============================================
+# 验证服务运行
+# ============================================
+# 检查所有服务
+sudo docker compose ps
+
+# 查看mcp-gateway日志
+sudo docker compose logs --tail=50 mcp-gateway
+
+# 测试服务
+curl http://localhost:8001/api/health
+

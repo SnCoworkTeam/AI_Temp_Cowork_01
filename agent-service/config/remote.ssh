@@ -1,0 +1,19 @@
+# SSH远程服务器配置
+# 用于服务器操作智能体
+
+Host enterprise-ai-server
+    HostName 43.143.139.197
+    User ubuntu
+    Port 22
+    IdentityFile /opt/enterprise-ai-platform/enterprise_ai_platform.pem
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+
+# 环境变量配置（在docker-compose.yml或.env中设置）
+# SSH_HOST=43.143.139.197
+# SSH_USERNAME=ubuntu
+# SSH_PRIVATE_KEY_PATH=/opt/enterprise-ai-platform/enterprise_ai_platform.pem
+# SSH_BASE_WORKDIR=/opt/enterprise-ai-platform
+# SSH_PORT=22
+# SSH_CONNECTION_TIMEOUT=30
+

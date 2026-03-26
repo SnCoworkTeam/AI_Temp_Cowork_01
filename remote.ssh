@@ -1,0 +1,22 @@
+# SSH 服务器配置文件
+# 用于连接企业AI平台服务器
+
+Host enterprise-ai-server
+    HostName 43.143.139.197
+    User ubuntu
+    IdentityFile enterprise_ai_platform.pem
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+    ServerAliveInterval 30
+    ServerAliveCountMax 5
+    # 连接优化
+    Compression yes
+    TCPKeepAlive yes
+    # 减少连接延迟
+    ConnectTimeout 10
+    # ControlMaster配置 - 实现连接复用和持久化
+    # 注意: Windows上ControlMaster可能不稳定，已暂时禁用
+    # ControlMaster auto
+    # ControlPath ~/.ssh/control-%r@%h:%p
+    # ControlPersist 10m
+

@@ -1,0 +1,16 @@
+========================================
+zhgj 19 服务 - 服务器直接运行说明
+========================================
+本文件夹包含 19 个服务的镜像 .tar 及部署文件，上传到服务器后按下面步骤即可直接运行（无需重新构建）。
+
+1. 加载所有镜像（在本文件夹下执行）：
+   Linux:   for f in *.tar; do [ -f "$f" ] && docker load -i "$f"; done
+   Windows: Get-ChildItem *.tar | ForEach-Object { docker load -i $_.FullName }
+
+2. 启动 19 个服务（.env 已设 COMPOSE_PROJECT_NAME，直接执行）：
+   docker compose up -d --no-build
+
+3. 查看状态：
+   docker compose ps
+
+说明：docker-compose.yml 中 5 个可选服务已设 profile，默认只启动 19 个服务。
