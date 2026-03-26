@@ -1,0 +1,15 @@
+services:
+  # 本地模式：前端使用本机 Node 启动，不由 Docker 启动
+  web-ui:
+    profiles:
+      - frontend-in-docker
+
+  # 约定主后端容器名
+  api-gateway:
+    container_name: AI_TEMP_COWORK-MAIN
+
+networks:
+  enterprise-ai-network:
+    ipam:
+      config:
+        - subnet: 172.33.0.0/16
