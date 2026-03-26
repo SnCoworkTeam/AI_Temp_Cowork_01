@@ -875,12 +875,12 @@ YYYY-MM-DD HH:MM:SS - logger_name - LEVEL - message
 
 ### 阶段1-4实施文档
 
-- [阶段1-4最终总结](../STAGES_1-4_FINAL_SUMMARY.md) - 阶段1-4完整实施总结
-- [SAP MM知识库访问指南](../SAP_MM_KNOWLEDGE_BASE_ACCESS_GUIDE.md) - 知识库和元数据访问指南
-- [阶段1实施报告](../STAGE1_COMPLETE_SUMMARY_FINAL.md) - 向量协调服务与统一搜索
-- [阶段2实施报告](../STAGE2_FINAL_SUMMARY.md) - 业务本体功能迁移
-- [阶段3实施报告](../STAGE3_TEST_COMPLETE_FINAL.md) - 统一实体标识与知识图谱
-- [阶段4实施报告](../STAGE4_TEST_COMPLETE_FINAL.md) - 智能化提升
+- [阶段1-4最终总结](docs/STAGES_1-4_FINAL_SUMMARY.md) - 阶段1-4完整实施总结
+- [SAP MM知识库访问指南](sap-metadata-agent/SAP_MM_KNOWLEDGE_BASE_ACCESS_GUIDE.md) - 知识库和元数据访问指南
+- [阶段1实施报告](docs/STAGE1_COMPLETE_SUMMARY_FINAL.md) - 向量协调服务与统一搜索
+- [阶段2实施报告](docs/STAGE2_FINAL_SUMMARY.md) - 业务本体功能迁移
+- [阶段3实施报告](docs/STAGE3_TEST_COMPLETE_FINAL.md) - 统一实体标识与知识图谱
+- [阶段4实施报告](docs/STAGE4_TEST_COMPLETE_FINAL.md) - 智能化提升
 
 ### 快速链接
 
@@ -976,7 +976,7 @@ python scripts/pre-commit-hook.py --install
 - ✅ **服务治理**: 限流、熔断、负载均衡、请求重试
 - ✅ **可观测性**: Prometheus指标、健康检查、监控中间件
 
-详细文档: [ARCHITECTURE_IMPLEMENTATION.md](ARCHITECTURE_IMPLEMENTATION.md)
+详细文档: [ARCHITECTURE_IMPLEMENTATION.md](docs/architecture-docs/ARCHITECTURE_IMPLEMENTATION.md)
 
 #### 智能路由和流式能力 (2025-01)
 - ✅ **智能路由**: API Gateway实现基于内容的智能路由，自动识别用户意图并路由到最佳服务
@@ -987,9 +987,8 @@ python scripts/pre-commit-hook.py --install
 - ✅ **动态工作流**: 基于LLM的智能工作流设计，自动分析任务并生成最优执行网络
 
 详细文档: 
-- [STREAMING_IMPLEMENTATION.md](STREAMING_IMPLEMENTATION.md) - 流式能力实现
-- [IMPLEMENTATION_COMPLETE_REPORT.md](IMPLEMENTATION_COMPLETE_REPORT.md) - 智能体执行链路实现
-- [SAP_MCP_SERVER_5_SERVICES_ANALYSIS.md](SAP_MCP_SERVER_5_SERVICES_ANALYSIS.md) - SAP MCP Server服务分析
+- [STREAMING_IMPLEMENTATION.md](docs/STREAMING_IMPLEMENTATION.md) - 流式能力实现
+- [IMPLEMENTATION_COMPLETE_REPORT.md](docs/IMPLEMENTATION_COMPLETE_REPORT.md) - 智能体执行链路实现
 
 #### 任务4.1 - 前端与智能体工作流交互协议设计 ✅
 - 完成WebSocket消息格式设计
@@ -1020,14 +1019,14 @@ python scripts/pre-commit-hook.py --install
 
 **综合评分**: 6.9/10 - **可持续，但需要持续改进**
 
-详细报告: [PROJECT_SUSTAINABILITY_REPORT.md](PROJECT_SUSTAINABILITY_REPORT.md)
+详细报告: [PROJECT_SUSTAINABILITY_REPORT.md](docs/PROJECT_SUSTAINABILITY_REPORT.md)
 
 #### 技术债务管理 (2025-01) ⭐NEW
 - 🔴 **P0关键问题**: 12项（安全漏洞、数据库问题、HTTP状态码）
 - 🟡 **P1高优先级**: 8项（API规范、错误处理）
 - 🟢 **P2中优先级**: 3项（测试覆盖、文档完善）
 
-**改进路线图**: 详见 [TECHNICAL_DEBT_BOARD.md](TECHNICAL_DEBT_BOARD.md)
+**改进路线图**: 详见 [TECHNICAL_DEBT_BOARD.md](docs/TECHNICAL_DEBT_BOARD.md)
 
 ## 📄 许可证
 
