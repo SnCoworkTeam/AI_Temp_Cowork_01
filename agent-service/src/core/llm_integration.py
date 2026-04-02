@@ -247,17 +247,23 @@ class DeepSeekLLM:
         try:
             llm_config = await self.config_client.get_llm_config()
 
-            # 从配置中心加载配置（如果存在且非空）
-            if llm_config.get("api_key") and llm_config["api_key"].strip():
-                self.api_key = llm_config["api_key"]
-            if llm_config.get("base_url") and llm_config["base_url"].strip():
-                self.base_url = llm_config["base_url"]
-            if llm_config.get("model") and llm_config["model"].strip():
-                self.model = llm_config["model"]
-            if llm_config.get("temperature") is not None:
-                self.temperature = float(llm_config["temperature"])
-            if llm_config.get("max_tokens") is not None:
-                self.max_tokens = int(llm_config["max_tokens"])
+            # 仅当配置中心提供了可用 api_key 时，才信任其余配置。
+            # 否则全部降级到环境变量，避免“model/base_url 被配置中心旧值覆盖”导致无法使用本地网关模型。
+            cc_api_key = (llm_config.get("api_key") or "").strip()
+            if cc_api_key:
+                self.api_key = cc_api_key
+                if (llm_config.get("base_url") or "").strip():
+                    self.base_url = llm_config["base_url"]
+                if (llm_config.get("model") or "").strip():
+                    self.model = llm_config["model"]
+                if llm_config.get("temperature") is not None:
+                    self.temperature = float(llm_config["temperature"])
+                if llm_config.get("max_tokens") is not None:
+                    self.max_tokens = int(llm_config["max_tokens"])
+            else:
+                logger.warning("Config center api_key is empty; ignore config center LLM fields and use environment variables")
+                self._load_config_from_env()
+                return
 
             logger.info(f"LLM config loaded from config center: model={self.model or 'NOT SET'}, base_url={self.base_url or 'NOT SET'}, has_api_key={bool(self.api_key and self.api_key.strip())}")
 
@@ -396,6 +402,7 @@ class DeepSeekLLM:
         messages: List[Dict[str, str]],
         system_prompt: Optional[str] = None,
         temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
         stream: bool = False
     ):
         """
@@ -435,6 +442,11 @@ class DeepSeekLLM:
             if temperature is not None:
                 self.llm.temperature = temperature
 
+            # 临时设置 max_tokens（如果提供）
+            original_max_tokens = getattr(self.llm, "max_tokens", None)
+            if max_tokens is not None and hasattr(self.llm, "max_tokens"):
+                self.llm.max_tokens = max_tokens
+
             try:
                 if stream:
                     # 流式输出
@@ -454,6 +466,9 @@ class DeepSeekLLM:
                 # 恢复原始温度
                 if temperature is not None:
                     self.llm.temperature = original_temperature
+                # 恢复原始 max_tokens
+                if max_tokens is not None and hasattr(self.llm, "max_tokens"):
+                    self.llm.max_tokens = original_max_tokens
 
         except Exception as e:
             err_text = str(e)

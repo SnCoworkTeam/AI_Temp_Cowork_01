@@ -130,6 +130,7 @@ async def intelligent_chat_endpoint(request: ChatRequest):
             "error": result.get("error"),
             "execution_path": result.get("execution_path", []),
             "used_services": result.get("used_services", []),
+            "sources": result.get("sources", []),
             "session_id": request.session_id
         }
     except Exception as e:
@@ -214,7 +215,7 @@ async def intelligent_chat_stream(request: ChatRequest):
                 elif step_name == "complete":
                     # 执行完成
                     final_result = step_result.get("final_result", {})
-                    yield f"data: {json.dumps({'type': 'complete', 'data': {'result': {'response': final_result.get('final_response'), 'execution_path': final_result.get('execution_path', []), 'used_services': final_result.get('used_services', [])}}, 'progress': 100})}\n\n"
+                    yield f"data: {json.dumps({'type': 'complete', 'data': {'result': {'response': final_result.get('final_response'), 'execution_path': final_result.get('execution_path', []), 'used_services': final_result.get('used_services', []), 'sources': final_result.get('sources', [])}}, 'progress': 100})}\n\n"
             
         except Exception as e:
             logger.error(f"Stream orchestration failed: {str(e)}", exc_info=True)

@@ -161,7 +161,9 @@ class SearchService:
         top_k: int = 10,
         filters: Optional[Dict[str, Any]] = None,
         document_ids: Optional[List[str]] = None,
-        user_id: Optional[str] = None
+        user_id: Optional[str] = None,
+        keywords: Optional[List[str]] = None,
+        match_all: bool = False,
     ) -> Dict[str, Any]:
         """
         关键词搜索
@@ -179,6 +181,11 @@ class SearchService:
         start_time = time.time()
         
         try:
+            keywords_list = [kw for kw in (keywords or []) if isinstance(kw, str) and kw.strip()]
+            if not keywords_list:
+                # 兼容旧调用方：用 query 做简单拆分
+                keywords_list = [k for k in str(query).split() if k.strip()]
+
             # 从数据库搜索文档（基于文件名、摘要等）
             documents = self.document_repo.list_documents(
                 skip=0,
@@ -186,6 +193,14 @@ class SearchService:
                 search=query,
                 status="processed"
             )
+            if not documents:
+                # 文件名/摘要不命中时，退化为扫描更多已处理文档（以 chunks 内容匹配为准）
+                documents = self.document_repo.list_documents(
+                    skip=0,
+                    limit=50,
+                    search=None,
+                    status="processed",
+                )
             
             # 在文档块中搜索关键词
             from ..repositories.chunk_repository import ChunkRepository
@@ -205,14 +220,47 @@ class SearchService:
                 # 搜索文档块
                 chunks = chunk_repo.get_by_document_id(str(doc.id))
                 for chunk in chunks:
-                    if query.lower() in chunk.content.lower():
+                    content_lower = (chunk.content or "").lower()
+                    if not content_lower:
+                        continue
+
+                    keywords_lower = [kw.lower() for kw in keywords_list]
+                    if match_all:
+                        if not all(kw in content_lower for kw in keywords_lower):
+                            continue
+                    else:
+                        if not any(kw in content_lower for kw in keywords_lower):
+                            continue
+
+                    # 评分：命中关键词占比 + 轻量频次
+                    hit_count = sum(1 for kw in keywords_lower if kw in content_lower)
+                    freq = sum(content_lower.count(kw) for kw in keywords_lower)
+                    score = min(1.0, (hit_count / max(1, len(keywords_lower))) * 0.7 + min(freq, 10) / 10.0 * 0.3)
+
+                    # 截断展示片段
+                    snippet = chunk.content
+                    if len(snippet) > 800:
+                        first_pos = -1
+                        for kw in keywords_lower:
+                            pos = content_lower.find(kw)
+                            if pos != -1 and (first_pos == -1 or pos < first_pos):
+                                first_pos = pos
+                        if first_pos != -1:
+                            start = max(0, first_pos - 120)
+                            end = min(len(snippet), first_pos + 680)
+                            snippet = snippet[start:end]
+                            if start > 0:
+                                snippet = "..." + snippet
+                            if end < len(chunk.content):
+                                snippet = snippet + "..."
+
                         results.append({
                             "chunk_id": str(chunk.id),
                             "document_id": str(doc.id),
                             "document_name": doc.filename,
-                            "content": chunk.content,
-                            "score": 1.0,  # 关键词匹配给固定分数
-                            "metadata": chunk.metadata or {},
+                            "content": snippet,
+                            "score": score,
+                            "metadata": chunk.chunk_metadata or {},
                             "chunk_metadata": {
                                 "chunk_index": chunk.chunk_index,
                                 "start_char": chunk.start_char,
@@ -229,6 +277,9 @@ class SearchService:
                 
                 if len(results) >= top_k:
                     break
+
+            # 按分数排序（高到低）
+            results.sort(key=lambda x: float(x.get("score", 0.0)), reverse=True)
             
             execution_time = time.time() - start_time
             

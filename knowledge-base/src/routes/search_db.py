@@ -107,13 +107,21 @@ async def keyword_search(
     """
     try:
         service = get_search_service(db)
-        
+
+        # 兼容 KeywordSearchRequest（keywords）到服务层（query/keywords）
+        query_text = " ".join(request.keywords) if request.keywords else ""
+        filters: Dict[str, Any] = {}
+        if request.knowledge_base_id:
+            filters["knowledge_base_id"] = request.knowledge_base_id
+
         result = await service.keyword_search(
-            query=request.query,
-            top_k=request.top_k,
-            filters=request.filters,
+            query=query_text,
+            top_k=request.page_size,
+            filters=filters,
             document_ids=request.document_ids,
-            user_id=user_id
+            user_id=user_id,
+            keywords=request.keywords,
+            match_all=request.match_all,
         )
         
         # 转换为Pydantic模型

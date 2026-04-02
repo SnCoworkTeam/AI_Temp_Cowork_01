@@ -3,6 +3,8 @@
 在agent-service内部统一编排处理入口
 """
 import logging
+import os
+import re
 from typing import Dict, Any, Optional, List, AsyncIterator
 from datetime import datetime
 
@@ -24,6 +26,11 @@ class OrchestrationEngine:
         self.conversation_agent = conversation_agent
         self.task_classifier = task_classifier
         self.service_clients = service_clients
+        # 本地知识库检索增强（RAG）
+        self.kb_enabled = os.getenv("AGENT_KB_ENABLED", "true").lower() == "true"
+        self.kb_top_k = int(os.getenv("AGENT_KB_TOP_K", "5"))
+        self.kb_min_score = float(os.getenv("AGENT_KB_MIN_SCORE", "0.3"))
+        self.kb_max_chars = int(os.getenv("AGENT_KB_MAX_CHARS", "6000"))
         # ✅ 初始化提示词引擎
         try:
             self.prompt_engine = PromptEngine()
@@ -31,6 +38,171 @@ class OrchestrationEngine:
         except Exception as e:
             logger.warning(f"Failed to initialize prompt engine: {e}, will use basic prompts")
             self.prompt_engine = None
+
+    async def _retrieve_kb_context(self, query: str) -> tuple[str, list[dict[str, Any]]]:
+        """
+        从 knowledge-base 做语义检索，返回可注入 prompt 的文本与 sources。
+        """
+        if not self.kb_enabled:
+            return "", []
+        if not query or not query.strip():
+            return "", []
+
+        try:
+            data = await self.service_clients.knowledge_base.semantic_search(
+                query=query,
+                top_k=max(1, min(self.kb_top_k, 20)),
+                min_score=self.kb_min_score,
+                filters=None,
+            )
+            rows = data.get("results", []) if isinstance(data, dict) else []
+            if not isinstance(rows, list) or not rows:
+                # semantic 没命中时，回退 keyword_search（适配当前向量库为空/未索引的情况）
+                try:
+                    q = query.strip()
+                    # 提取较短的中文词段 + 英数 token，避免把整句当成关键词导致 0 命中
+                    zh = re.findall(r"[\u4e00-\u9fff]{2,6}", q)
+                    en = re.findall(r"[A-Za-z0-9]{2,}", q)
+                    tokens = zh + en
+                    # 常见高价值关键词兜底
+                    for extra in ["AI", "项目", "进展", "规划", "报告", "2026", "3月", "截至"]:
+                        if extra not in tokens and extra in q:
+                            tokens.insert(0, extra)
+
+                    keywords: list[str] = []
+                    for t in tokens:
+                        t = t.strip()
+                        if not t or t in keywords:
+                            continue
+                        keywords.append(t)
+                        if len(keywords) >= 8:
+                            break
+
+                    kw = await self.service_clients.knowledge_base.keyword_search(
+                        keywords=keywords,
+                        match_all=False,
+                        page=1,
+                        page_size=max(5, min(self.kb_top_k, 10)),
+                    )
+                    kw_rows = kw.get("results", []) if isinstance(kw, dict) else []
+                    if isinstance(kw_rows, list) and kw_rows:
+                        rows = kw_rows
+                    else:
+                        return "", []
+                except Exception as e:
+                    logger.warning(f"KB keyword fallback failed: {e}")
+                    return "", []
+
+            sources: list[dict[str, Any]] = []
+            blocks: list[str] = []
+            for item in rows:
+                if not isinstance(item, dict):
+                    continue
+                score = item.get("score")
+                try:
+                    if score is not None and float(score) < self.kb_min_score:
+                        continue
+                except Exception:
+                    pass
+
+                content = item.get("content") or ""
+                if not isinstance(content, str) or not content.strip():
+                    continue
+
+                doc_name = item.get("document_name") or item.get("document_id") or "unknown"
+                chunk_id = item.get("chunk_id") or ""
+                sources.append(
+                    {
+                        "document_name": doc_name,
+                        "document_id": item.get("document_id"),
+                        "chunk_id": chunk_id,
+                        "score": score,
+                    }
+                )
+                blocks.append(f"[来源: {doc_name} | chunk: {chunk_id} | score: {score}]\n{content.strip()}")
+
+                if sum(len(b) for b in blocks) >= self.kb_max_chars:
+                    break
+
+            if not blocks:
+                return "", []
+
+            text = "\n\n---\n\n".join(blocks)
+            if len(text) > self.kb_max_chars:
+                text = text[: self.kb_max_chars]
+            return text, sources
+        except Exception as e:
+            logger.warning(f"KB retrieve failed, fallback to LLM only: {e}")
+            return "", []
+
+    async def _fallback_to_kb_llm(
+        self,
+        user_input: str,
+        reason: str,
+        kb_context: str,
+        kb_sources: list[dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """
+        当工具不可用/执行失败时，降级到“知识库检索增强 + 直接 LLM”回答。
+        """
+        if not kb_context:
+            return {
+                "success": False,
+                "output": f"抱歉，处理您的请求时遇到问题：{reason}",
+                "response": f"抱歉，处理您的请求时遇到问题：{reason}",
+                "error": reason,
+                "strategy": "kb_fallback",
+                "sources": kb_sources,
+            }
+
+        if not deepseek_llm.llm:
+            logger.error("LLM not initialized during kb_fallback, attempting to initialize...")
+            await deepseek_llm._load_config_async()
+            if not deepseek_llm.llm:
+                error_msg = "LLM服务未初始化。请检查OPENAI_API_KEY和LLM_BASE_URL配置。"
+                return {
+                    "success": False,
+                    "output": error_msg,
+                    "response": error_msg,
+                    "error": error_msg,
+                    "strategy": "kb_fallback",
+                    "sources": kb_sources,
+                }
+
+        system_prompt = (
+            "你是一个企业AI平台的智能助手。\n"
+            "你将收到【本地知识库检索结果】。请优先基于这些内容回答。"
+            "如果知识库信息不足，请明确说明。\n\n"
+            f"工具执行失败原因：{reason}\n\n"
+            "【本地知识库检索结果】\n"
+            f"{kb_context}"
+        )
+
+        try:
+            answer = await deepseek_llm.chat(
+                messages=[{"role": "user", "content": user_input}],
+                system_prompt=system_prompt,
+            )
+            if not answer:
+                answer = "抱歉，我暂时无法生成回复。请稍后再试。"
+            return {
+                "success": True,
+                "output": answer,
+                "response": answer,
+                "strategy": "kb_fallback",
+                "sources": kb_sources,
+            }
+        except Exception as e:
+            err = f"KB fallback LLM调用失败: {str(e)}"
+            logger.error(err, exc_info=True)
+            return {
+                "success": False,
+                "output": err,
+                "response": err,
+                "error": str(e),
+                "strategy": "kb_fallback",
+                "sources": kb_sources,
+            }
     
     async def orchestrate_request(
         self,
@@ -280,6 +452,7 @@ class OrchestrationEngine:
                 "final_response": final_response,
                 "execution_path": execution_path,
                 "used_services": list(set(used_services)),  # 去重
+                "sources": result.get("sources", []),
                 "intent_analysis": {
                     "task_type": intent_analysis.task_type.value,
                     "confidence": intent_analysis.confidence,
@@ -388,6 +561,15 @@ class OrchestrationEngine:
     ) -> Dict[str, Any]:
         """处理直接LLM调用 - 支持优化提示词"""
         try:
+            kb_context, kb_sources = await self._retrieve_kb_context(user_input)
+            kb_system = None
+            if kb_context:
+                kb_system = (
+                    "你可以使用以下【本地知识库检索结果】作为事实依据。"
+                    "如果与用户问题无关，请忽略。若无法从中得到答案，请明确说明。\n\n"
+                    + kb_context
+                )
+
             # ✅ 使用优化提示词（如果可用）
             if self.prompt_engine and prompt_context:
                 try:
@@ -415,6 +597,7 @@ class OrchestrationEngine:
                     # 使用优化提示词调用LLM
                     response = await deepseek_llm.chat(
                         messages=optimized_prompt.messages,
+                        system_prompt=kb_system,
                         temperature=optimized_prompt.temperature,
                         max_tokens=optimized_prompt.max_tokens
                     )
@@ -432,6 +615,7 @@ class OrchestrationEngine:
                         "output": response,
                         "response": response,
                         "strategy": "direct_llm",
+                        "sources": kb_sources,
                         "prompt_template": optimized_prompt.template_name,
                         "execution_method": "optimized_direct_llm"
                     }
@@ -470,7 +654,7 @@ class OrchestrationEngine:
             # 调用LLM
             response = await deepseek_llm.chat(
                 messages=messages,
-                system_prompt="你是一个有用的AI助手。"
+                system_prompt=("你是一个有用的AI助手。" + ("\n\n" + kb_system if kb_system else ""))
             )
             
             # 确保response不是None或空
@@ -484,7 +668,8 @@ class OrchestrationEngine:
                 "success": True,
                 "output": response,
                 "response": response,
-                "strategy": "direct_llm"
+                "strategy": "direct_llm",
+                "sources": kb_sources,
             }
         except Exception as e:
             logger.error(f"Direct LLM call failed: {e}", exc_info=True)
@@ -507,6 +692,7 @@ class OrchestrationEngine:
     ) -> Dict[str, Any]:
         """处理工具执行"""
         try:
+            kb_context, kb_sources = await self._retrieve_kb_context(user_input)
             # 获取工具ID - 优先使用元数据识别结果
             tool_id = None
             
@@ -624,6 +810,17 @@ class OrchestrationEngine:
                     output = f"抱歉，执行SAP查询时遇到问题：{error_msg}\n\n如果您想查询销售订单，请确保：\n1. SAP系统连接正常\n2. 您有相应的权限\n3. 查询条件正确"
                 else:
                     output = f"抱歉，执行工具 '{tool_id}' 时遇到问题：{error_msg}"
+
+                # ✅ 降级策略：工具执行失败时，尝试使用知识库检索结果直接回答
+                fallback = await self._fallback_to_kb_llm(
+                    user_input=user_input,
+                    reason=f"工具 '{tool_id}' 执行失败：{error_msg}",
+                    kb_context=kb_context,
+                    kb_sources=kb_sources,
+                )
+                # 若 fallback 成功则直接返回；否则返回原工具错误信息（保留 output）
+                if fallback.get("success"):
+                    return fallback
             else:
                 # 格式化工具执行结果为可读文本
                 formatted_result = self._format_tool_result(raw_result, tool_id)
@@ -690,16 +887,27 @@ class OrchestrationEngine:
                 "response": output,  # 添加response字段以兼容chat-service
                 "tool_id": tool_id,
                 "raw_result": result,
-                "error": result.get("error") if not success else None
+                "error": result.get("error") if not success else None,
+                "sources": kb_sources,
             }
         except Exception as e:
             logger.error(f"Tool execution failed: {e}")
             error_msg = f"工具执行失败: {str(e)}"
+            kb_context, kb_sources = await self._retrieve_kb_context(user_input)
+            fallback = await self._fallback_to_kb_llm(
+                user_input=user_input,
+                reason=error_msg,
+                kb_context=kb_context,
+                kb_sources=kb_sources,
+            )
+            if fallback.get("success"):
+                return fallback
             return {
                 "success": False,
                 "error": str(e),
                 "output": error_msg,
-                "response": error_msg
+                "response": error_msg,
+                "sources": kb_sources,
             }
     
     async def _handle_workflow(

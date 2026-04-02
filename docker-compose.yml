@@ -165,6 +165,12 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REGISTRY_SERVICE_URL=http://registry-service:8000
+      # LLM（本地千问/企业网关）配置：由 .env 或环境变量注入
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY:-}
+      - LLM_API_URL=${LLM_API_URL:-}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4}
+      # MCP 网关地址（用于本地知识库检索工具调用）
+      - MCP_GATEWAY_URL=${MCP_GATEWAY_URL:-http://mcp-gateway:8001}
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - RATE_LIMIT_ENABLED=true
       - RATE_LIMIT_PER_MINUTE=60

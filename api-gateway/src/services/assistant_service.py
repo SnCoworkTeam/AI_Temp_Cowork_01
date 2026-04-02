@@ -6,7 +6,7 @@ import logging
 import httpx
 import os
 import json
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -19,10 +19,137 @@ class AssistantService:
         """
         初始化智能助手服务
         """
-        self.llm_base_url = os.getenv("LLM_BASE_URL", "http://chat-service:8006")
-        self.llm_api_key = os.getenv("OPENAI_API_KEY", "")
+        self.llm_base_url = os.getenv("LLM_BASE_URL", "http://chat-service:8006").rstrip("/")
+        self.llm_api_url = os.getenv("LLM_API_URL", "").strip()
+        self.llm_model = os.getenv("LLM_MODEL", "gpt-4")
+
+        # 兼容多种 key：优先使用千问/百炼风格 key，其次 OPENAI_API_KEY
+        self.dashscope_api_key = os.getenv("DASHSCOPE_API_KEY", "").strip()
+        self.openai_api_key = os.getenv("OPENAI_API_KEY", "").strip()
+
+        self.mcp_gateway_url = os.getenv("MCP_GATEWAY_URL", "http://mcp-gateway:8001").rstrip("/")
+
+        # RAG / 知识库检索增强开关与参数
+        self.kb_enabled = os.getenv("ASSISTANT_KB_ENABLED", "true").lower() == "true"
+        self.kb_top_k = int(os.getenv("ASSISTANT_KB_TOP_K", "5"))
+        self.kb_min_score = float(os.getenv("ASSISTANT_KB_MIN_SCORE", "0.3"))
+        self.kb_timeout_seconds = int(os.getenv("ASSISTANT_KB_TIMEOUT_SECONDS", "8"))
+        self.kb_max_chars = int(os.getenv("ASSISTANT_KB_MAX_CHARS", "6000"))
+
         self.http_client = httpx.AsyncClient(timeout=30.0)
         self.enabled = os.getenv("ASSISTANT_ENABLED", "true").lower() == "true"
+
+    def _llm_endpoint(self) -> str:
+        """
+        获取 LLM 请求地址。
+        - 若设置了 LLM_API_URL：视为完整 URL（例如 https://.../chat/completions）
+        - 否则使用 LLM_BASE_URL + /api/chat/completions（兼容原 chat-service）
+        """
+        if self.llm_api_url:
+            return self.llm_api_url
+        return f"{self.llm_base_url}/api/chat/completions"
+
+    def _llm_headers(self) -> Dict[str, str]:
+        """
+        生成 LLM 鉴权请求头。
+        说明：不同网关/代理可能需要不同 header；这里做最大兼容：
+        - Authorization: Bearer <key>
+        - X-DashScope-Api-Key: <key>（若提供 DASHSCOPE_API_KEY）
+        """
+        headers: Dict[str, str] = {"Content-Type": "application/json"}
+
+        if self.dashscope_api_key:
+            headers["Authorization"] = f"Bearer {self.dashscope_api_key}"
+            headers["X-DashScope-Api-Key"] = self.dashscope_api_key
+            return headers
+
+        if self.openai_api_key:
+            headers["Authorization"] = f"Bearer {self.openai_api_key}"
+            return headers
+
+        return headers
+
+    async def _search_local_knowledge(self, query: str) -> Tuple[str, List[Dict[str, Any]]]:
+        """
+        调用 mcp-gateway 的 knowledge_search 工具进行本地知识库检索。
+
+        Returns:
+            (kb_context_text, sources)
+        """
+        if not self.kb_enabled:
+            return "", []
+        if not query.strip():
+            return "", []
+
+        try:
+            resp = await self.http_client.post(
+                f"{self.mcp_gateway_url}/api/tools/knowledge_search/execute",
+                json={
+                    "parameters": {
+                        "query": query,
+                        "search_type": "semantic",
+                        "limit": max(1, min(self.kb_top_k, 20)),
+                        "filters": None,
+                    },
+                    "timeout": self.kb_timeout_seconds,
+                },
+            )
+
+            if resp.status_code != 200:
+                logger.warning(f"knowledge_search failed: status={resp.status_code}")
+                return "", []
+
+            payload = resp.json() or {}
+            result = payload.get("result") if isinstance(payload, dict) else None
+            if not isinstance(result, dict) or not result.get("success"):
+                return "", []
+
+            rows = result.get("results", [])
+            if not isinstance(rows, list) or not rows:
+                return "", []
+
+            sources: List[Dict[str, Any]] = []
+            blocks: List[str] = []
+            for item in rows:
+                if not isinstance(item, dict):
+                    continue
+                score = item.get("score")
+                try:
+                    if score is not None and float(score) < self.kb_min_score:
+                        continue
+                except Exception:
+                    pass
+
+                content = item.get("content") or ""
+                if not isinstance(content, str) or not content.strip():
+                    continue
+
+                doc_name = item.get("document_name") or item.get("document_id") or "unknown"
+                chunk_id = item.get("chunk_id") or ""
+                sources.append(
+                    {
+                        "document_name": doc_name,
+                        "document_id": item.get("document_id"),
+                        "chunk_id": chunk_id,
+                        "score": score,
+                    }
+                )
+                blocks.append(f"[来源: {doc_name} | chunk: {chunk_id} | score: {score}]\n{content.strip()}")
+
+                if sum(len(b) for b in blocks) >= self.kb_max_chars:
+                    break
+
+            if not blocks:
+                return "", []
+
+            kb_text = "\n\n---\n\n".join(blocks)
+            if len(kb_text) > self.kb_max_chars:
+                kb_text = kb_text[: self.kb_max_chars]
+            return kb_text, sources
+
+        except Exception as e:
+            logger.warning(f"knowledge_search exception, fallback to LLM only: {e}")
+            return "", []
     
     async def chat(
         self,
@@ -50,6 +177,16 @@ class AssistantService:
         try:
             # 构建系统提示词
             system_prompt = self._build_system_prompt(context)
+
+            # 先查本地知识库（可配置开关），作为额外上下文注入
+            kb_context, kb_sources = await self._search_local_knowledge(message)
+            if kb_context:
+                system_prompt = (
+                    system_prompt
+                    + "\n\n你可以使用以下【本地知识库检索结果】作为事实依据。"
+                    + "如果与用户问题无关，请忽略。若无法从中得到答案，请明确说明。\n\n"
+                    + kb_context
+                )
             
             # 构建消息列表
             messages = [
@@ -71,13 +208,10 @@ class AssistantService:
             
             # 调用LLM API
             response = await self.http_client.post(
-                f"{self.llm_base_url}/api/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {self.llm_api_key}",
-                    "Content-Type": "application/json"
-                },
+                self._llm_endpoint(),
+                headers=self._llm_headers(),
                 json={
-                    "model": "gpt-4",
+                    "model": self.llm_model,
                     "messages": messages,
                     "temperature": 0.7,
                     "max_tokens": 500
@@ -100,6 +234,7 @@ class AssistantService:
             return {
                 "response": assistant_message,
                 "suggestions": suggestions,
+                "sources": kb_sources,
                 "timestamp": datetime.now().isoformat()
             }
             
@@ -210,13 +345,10 @@ class AssistantService:
 """
             
             response = await self.http_client.post(
-                f"{self.llm_base_url}/api/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {self.llm_api_key}",
-                    "Content-Type": "application/json"
-                },
+                self._llm_endpoint(),
+                headers=self._llm_headers(),
                 json={
-                    "model": "gpt-4",
+                    "model": self.llm_model,
                     "messages": [
                         {
                             "role": "system",
